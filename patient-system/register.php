@@ -2,17 +2,34 @@
 session_start();
 require 'db.php';
 
-$err = "";
+// Security headers
+header("Content-Type: application/json");
+// Change * to url once in production
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+  exit;
+}
+
+// Receive json data
+$data = json_decode(file_get_contents("php://input"), true);
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-  $name      = trim($_POST['name'] ?? "");
-  $username  = trim($_POST['username'] ?? "");
-  $password  = $_POST['password'] ?? "";
-  $specialty = trim($_POST['specialty'] ?? "");
-  $email     = trim($_POST['email'] ?? "");
-  $phone     = trim($_POST['phone'] ?? "");
+  $name      = trim($data['name'] ?? "");
+  $username  = trim($data['username'] ?? "");
+  $password  = $data['password'] ?? "";
+  $specialty = trim($data['specialty'] ?? "");
+  $email     = trim($data['email'] ?? "");
+  $phone     = trim($data['phone'] ?? "");
 
   if ($name === "" || $username === "" || $password === "") {
-    $err = "Name, username and password are required.";
+    http_response_code(400);
+    echo json_encode(
+      ['success' => false,
+     'message' => 'Name, username and password are required.']
+    );
+    exit();
   } else {
     // Check if username exists
     $check = $conn->prepare("SELECT 1 FROM clinician WHERE username=? LIMIT 1");
@@ -21,44 +38,24 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $check->store_result();
 
     if ($check->num_rows > 0) {
-      $err = "Username already taken.";
+      http_response_code(409);
+      echo json_encode(['success' => false, 'message' => 'Username already taken.']);
     } else {
       $hash = password_hash($password, PASSWORD_DEFAULT);
       $stmt = $conn->prepare("INSERT INTO clinician (name, username, password_hash, specialty, email, phone) VALUES (?, ?, ?, ?, ?, ?)");
       $stmt->bind_param("ssssss", $name, $username, $hash, $specialty, $email, $phone);
 
       if ($stmt->execute()) {
-        echo "<script>alert('Registration successful! Please log in.');window.location='login.php';</script>";
+        http_response_code(201);
+        echo json_encode(['success' => true, 'message' => 'Registration successful! Please log in.']);
         exit();
       } else {
-        $err = "Registration failed: " . htmlspecialchars($conn->error);
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Registration failed: ' . htmlspecialchars($conn->error)]);
       }
     }
     $check->close();
   }
+  exit();
 }
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Register</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-<div class="container">
-  <h2>Clinician Registration</h2>
-  <?php if ($err) echo "<p class='error'>$err</p>"; ?>
-  <form method="POST" autocomplete="off">
-    <input type="text" name="name" placeholder="Full Name" required>
-    <input type="text" name="username" placeholder="Username" required>
-    <input type="password" name="password" placeholder="Password (min 8 chars)" minlength="8" required>
-    <input type="text" name="specialty" placeholder="Specialty">
-    <input type="email" name="email" placeholder="Email">
-    <input type="text" name="phone" placeholder="Phone">
-    <button type="submit">Register</button>
-  </form>
-  <p>Already registered? <a href="login.php">Log in</a></p>
-</div>
-</body>
-</html>
