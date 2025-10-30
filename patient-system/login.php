@@ -2,10 +2,22 @@
 session_start();
 require 'db.php';
 
-$error = "";
+// Security headers
+header("Content-Type: application/json");
+// Change * to url once in production
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+  exit;
+}
+
+// Receive json data
+$data = json_decode(file_get_contents("php://input"), true);
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-  $username = trim($_POST['username'] ?? "");
-  $password = $_POST['password'] ?? "";
+  $username = trim($data['username'] ?? "");
+  $password = $data['password'] ?? "";
 
   $stmt = $conn->prepare("SELECT clinician_id, username, password_hash FROM clinician WHERE username=? LIMIT 1");
   $stmt->bind_param("s", $username);
@@ -24,30 +36,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     // $log->bind_param("is", $user['clinician_id'], $ip);
     // $log->execute();
 
-    header("Location: dashboard.php");
+    // send json response
+    echo json_encode(
+      ['success' => true,
+      'message' => 'Login successful',
+      'user' => [
+        'clinician_id' => $user['clinician_id'],
+         'username' => $user['username']]]
+        );
     exit();
   } else {
-    $error = "Invalid username or password.";
+    http_response_code(401);
+    echo json_encode(['success' => false, 
+    'message' => 'Invalid username or password.']);
+    exit();
   }
 }
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Login</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-<div class="container">
-  <h2>Clinician Login</h2>
-  <?php if ($error) echo "<p class='error'>$error</p>"; ?>
-  <form method="POST" autocomplete="off">
-    <input type="text" name="username" placeholder="Username" required>
-    <input type="password" name="password" placeholder="Password" required>
-    <button type="submit">Login</button>
-  </form>
-  <p>New here? <a href="register.php">Create an account</a></p>
-</div>
-</body>
-</html>
