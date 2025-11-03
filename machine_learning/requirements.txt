@@ -2,3 +2,6 @@ pandas
 numpy
 scikit-learn
 scipy
+scikit-optimize
+# xgboost
+# optuna
