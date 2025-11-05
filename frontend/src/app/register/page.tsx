@@ -5,14 +5,15 @@ import {
   PasswordInput,
   Paper,
   Title,
-  Container,
   Button,
   Group,
+  Text,
   Anchor,
 } from "@mantine/core";
-import { useForm } from "@mantine/form";
+import { isNotEmpty, useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -26,18 +27,20 @@ export default function RegisterPage() {
       phone: "",
     },
     validate: {
-      name: (value) => (value.length > 0 ? null : "Name is required"),
-      username: (value) => (value.length > 0 ? null : "Username is required"),
+      name: isNotEmpty("Name is required"),
+      username: isNotEmpty("Username is required"),
+      email: isNotEmpty("Email is required"),
       password: (value) => {
         if (value.length === 0) {
           return "Password is required.";
         }
         return validatePassword(value)
-          ? null
-          : "Password must contain at least 8 characters and include uppercase, lowercase, and numbers.";
+          ? "Password must contain at least 8 characters."
+          : null;
       },
     },
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const validatePassword = (password: string) => {
     const regex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
@@ -45,6 +48,8 @@ export default function RegisterPage() {
   };
 
   const handleSubmit = async (values: typeof form.values) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       const response = await fetch("http://localhost:8080/register.php", {
         method: "POST",
@@ -59,7 +64,7 @@ export default function RegisterPage() {
       if (response.ok && result.success) {
         notifications.show({
           title: "Registration Successful",
-          message: `Welcome back, ${result.user.username}!`,
+          message: `Welcome to (name), ${result.user.username}!`,
           color: "green",
         });
 
@@ -78,51 +83,76 @@ export default function RegisterPage() {
         message: "Could not connect to the server. Please try again later.",
         color: "red",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
   return (
-    <Container size={420} my={40}>
+    <div className="flex flex-col items-center justify-center min-h-screen ">
       <Title> Sign Up</Title>
-      <Paper withBorder shadow="md" p={30} mt={30} radius="md">
+      <Paper
+        withBorder
+        shadow="md"
+        p={30}
+        mt={30}
+        radius="md"
+        className="w-[420px]"
+        mb={30}
+      >
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <TextInput
             label="Name"
             placeholder="Your name"
-            required
+            withAsterisk
             {...form.getInputProps("name")}
           />
           <TextInput
             label="Username"
             placeholder="Your username"
-            required
+            withAsterisk
             {...form.getInputProps("username")}
-            mt="md"
+            mt="sm"
           />
           <TextInput
             label="Email"
             placeholder="Your Email"
-            required
-            mt="md"
+            withAsterisk
+            mt="sm"
             {...form.getInputProps("email")}
           />
           <PasswordInput
             label="Password"
             placeholder="Your password"
-            required
-            mt="md"
+            withAsterisk
+            mt="sm"
             {...form.getInputProps("password")}
           />
+          <TextInput
+            label="Specialty"
+            placeholder="Your specialty"
+            {...form.getInputProps("specialty")}
+            mt="sm"
+          />
+          <TextInput
+            label="Phone"
+            placeholder="Your phone number"
+            {...form.getInputProps("phone")}
+            mt="sm"
+          />
 
-          <Button fullWidth mt="xl" type="submit">
+          <Button fullWidth mt="xl" type="submit" loading={isSubmitting}>
             Sign Up
           </Button>
         </form>
         <Group justify="center" mt="md">
-          <Anchor href="/login" fw={500}>
-            Already have an account? Login
-          </Anchor>
+          <Text>
+            Already have an account? {""}
+            <Anchor href="/login" fw={500}>
+              Login
+            </Anchor>
+          </Text>
         </Group>
       </Paper>
-    </Container>
+    </div>
   );
 }
