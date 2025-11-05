@@ -39,17 +39,22 @@ export const theme = createTheme({
   primaryColor: 'primary',
 
   components: {
+    Main: {
+      styles: {
+        root: {
+        },
+      },
+    },
     Paper: {
       styles: {
         root: {
-          backgroundColor: 'transparent',
+          backgroundColor: 'var(--background)',
         },
       },
     },
     Header: {
       styles: {
         root: {
-          backgroundColor: 'transparent',
           borderColor: 'var(--border)',
         },
       },

@@ -7,7 +7,7 @@ import image from "@/assets/home.jpg";
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-row items-center justify-center gap-20 px-8">
+    <main className="flex min-h-screen flex-row items-center justify-center gap-20 px-8 bg-background">
       <div className="flex max-w-lg flex-col items-start gap-4">
         <Title
           unstyled
