@@ -33,20 +33,32 @@ export default function LoginPage() {
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const response = await fetch("http://localhost:8080/login.php", {
+      const response = await fetch("/api/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Accept: "application/json",
         },
+        credentials: "include",
         body: JSON.stringify(values),
       });
-
-      const result = await response.json();
+      const raw = await response.text();
+      interface LoginResponse {
+        success: boolean;
+        message: string;
+        user?: { clinician_id: number; username: string };
+      }
+      let result: LoginResponse;
+      try {
+        result = JSON.parse(raw) as LoginResponse;
+      } catch {
+        throw new Error(raw?.slice(0, 300) || "Non-JSON response from server");
+      }
 
       if (response.ok && result.success) {
         notifications.show({
           title: "Login Successful",
-          message: `Welcome back, ${result.user.username}!`,
+          message: `Welcome back, ${result.user?.username}!`,
           color: "green",
         });
 

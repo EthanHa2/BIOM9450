@@ -29,7 +29,12 @@ export default function RegisterPage() {
     validate: {
       name: isNotEmpty("Name is required"),
       username: isNotEmpty("Username is required"),
-      email: isNotEmpty("Email is required"),
+      email: (value) => {
+        if (value.length === 0) return "Email is required";
+        return validateEmail(value)
+          ? "Please enter a valid email address."
+          : null;
+      },
       password: (value) => {
         if (value.length === 0) {
           return "Password is required.";
@@ -43,32 +48,47 @@ export default function RegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const validatePassword = (password: string) => {
-    const regex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
-    return !regex.test(password);
+    return password.length < 8; // invalid if fewer than 8 characters
+  };
+
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return !emailRegex.test(email); // invalid if not matching basic email pattern
   };
 
   const handleSubmit = async (values: typeof form.values) => {
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const response = await fetch("http://localhost:8080/register.php", {
+      const response = await fetch("/api/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Accept: "application/json",
         },
+        credentials: "include",
         body: JSON.stringify(values),
       });
-
-      const result = await response.json();
+      const raw = await response.text();
+      interface RegisterResponse {
+        success: boolean;
+        message: string;
+      }
+      let result: RegisterResponse;
+      try {
+        result = JSON.parse(raw) as RegisterResponse;
+      } catch {
+        throw new Error(raw?.slice(0, 300) || "Non-JSON response from server");
+      }
 
       if (response.ok && result.success) {
         notifications.show({
           title: "Registration Successful",
-          message: `Welcome to (name), ${result.user.username}!`,
+          message: result.message ?? "Registration successful! Please log in.",
           color: "green",
         });
 
-        router.push("/dashboard");
+        router.push("/login");
       } else {
         notifications.show({
           title: "Registration Failed",
@@ -80,7 +100,10 @@ export default function RegisterPage() {
       console.error("Registration error:", error);
       notifications.show({
         title: "Registration Error",
-        message: "Could not connect to the server. Please try again later.",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Could not connect to the server. Please try again later.",
         color: "red",
       });
     } finally {
