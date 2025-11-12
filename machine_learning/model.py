@@ -90,6 +90,9 @@ def train_random_forest_optimised(data_path: str):
     plt.xlabel("Importance Score")
     plt.ylabel("Feature")
     plt.show()
+    plt.tight_layout()
+    plt.savefig("feature_importance.png", dpi=300)
+    plt.close()
 
     # -----------------------------
     # 8️⃣ ROC–AUC curve (multiclass)
@@ -120,6 +123,10 @@ def train_random_forest_optimised(data_path: str):
     plt.xlabel("False Positive Rate")
     plt.ylabel("True Positive Rate")
     plt.legend(loc="lower right")
+
+    # For the ROC plot later
+    plt.savefig("roc_curve.png", dpi=300)
+    plt.close()
 
     return {
         "model": rf,
