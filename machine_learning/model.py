@@ -89,7 +89,6 @@ def train_random_forest_optimised(data_path: str):
     plt.title("Feature Importance (Random Forest)")
     plt.xlabel("Importance Score")
     plt.ylabel("Feature")
-    plt.show()
     plt.tight_layout()
     plt.savefig("feature_importance.png", dpi=300)
     plt.close()
