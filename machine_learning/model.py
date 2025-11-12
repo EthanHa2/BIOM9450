@@ -10,6 +10,7 @@ import seaborn as sns
 from sklearn.preprocessing import label_binarize
 from sklearn.metrics import roc_curve, auc
 from itertools import cycle
+import joblib
 
 # Trains a Random Forest Model on the mutation level data and plots features of importance
 # and ROC curves for multiclass classification
@@ -126,6 +127,11 @@ def train_random_forest_optimised(data_path: str):
     # For the ROC plot later
     plt.savefig("roc_curve.png", dpi=300)
     plt.close()
+    
+    # Save the model
+    joblib.dump(rf, "rf_cancer_predictor.pkl")
+    joblib.dump(scaler, "scaler.pkl")
+    joblib.dump(le_label, "label_encoder.pkl")
 
     return {
         "model": rf,
