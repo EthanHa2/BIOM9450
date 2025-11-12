@@ -7,5 +7,3 @@ matplotlib
 seaborn
 skopt
 joblib
-# xgboost
-# optuna
