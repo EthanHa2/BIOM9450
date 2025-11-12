@@ -37,10 +37,27 @@ for col in ["mutated_from_allele", "mutated_to_allele", "gene_affected"]:
 # Scale features
 X_scaled = scaler.transform(df)
 
-# Predict
 pred = model.predict(X_scaled)[0]
 pred_label = le_label.inverse_transform([pred])[0]
 
-# Output JSON result
-print(json.dumps({"predicted_cancer_type": pred_label}))
-print(json)
+# Confidence (probability of the predicted class)
+try:
+    probas = model.predict_proba(X_scaled)[0]
+    confidence = float(np.max(probas) * 100)
+except Exception:
+    confidence = None
+
+# Format result
+if confidence is not None:
+    result_text = f"{pred_label} ({confidence:.1f}% confidence)"
+else:
+    result_text = f"{pred_label} (confidence unavailable)"
+
+# Output JSON result for PHP
+output = {
+    "predicted_cancer_type": pred_label,
+    "confidence_percent": round(confidence, 2) if confidence else None,
+    "display_text": result_text
+}
+
+print(json.dumps(output))
