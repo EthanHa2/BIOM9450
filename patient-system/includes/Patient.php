@@ -1,27 +1,79 @@
 <?php
 
+require_once __DIR__ . '/Validator.php';
+
 class Patient
 {
     public function __construct(private PDO $pdo) {}
 
+    private const array FIELDS = [
+        'first_name',
+        'last_name',
+        'dob',
+        'sex',
+        'phone',
+        'address',
+        'photo',
+    ];
+
+    // process & validate data
+    private function processData(array $data): array
+    {
+        // validation: required
+        $required = [
+            'first_name',
+            'last_name',
+            'dob',
+            'sex',
+            'phone',
+            'address',
+        ];
+        Validator::required($data, $required);
+
+        // validation: integers
+        $ints = ['phone'];
+        Validator::int($data, $ints);
+
+        // validation: dates
+        $dates = ['dob'];
+        Validator::date($data, $dates);
+
+        // processing: trim strings
+        $strings = [
+            'first_name',
+            'last_name',
+            'sex',
+            'address',
+        ];
+        foreach ($strings as $field) {
+            $data[$field] = (isset($data[$field]) && $data[$field] !== '')
+                ? trim((string) $data[$field])
+                : null;
+        }
+
+        return $data;
+    }
+
     // create patient
     public function create(array $data): int
     {
+        // validate & process data
+        $clean = $this->processData($data);
+
         $stmt = $this->pdo->prepare("
           INSERT INTO patient
-            (first_name, last_name, dob, sex, phone, address, diagnostic)
+            (first_name, last_name, dob, sex, phone, address)
           VALUES
-            (:first_name, :last_name, :dob, :sex, :phone, :address, :diagnostic)
+            (:first_name, :last_name, :dob, :sex, :phone, :address)
         ");
-        error_log($data['diagnostic']);
+
         $stmt->execute([
-            ':first_name' => $data['first_name'],
-            ':last_name' => $data['last_name'],
-            ':dob' => $data['dob'],
-            ':sex' => $data['sex'],
-            ':phone' => $data['phone'] ?? null,
-            ':address' => $data['address'] ?? null,
-            ':diagnostic' => $data['diagnostic'] ?? null,
+            ':first_name' => $clean['first_name'],
+            ':last_name' => $clean['last_name'],
+            ':dob' => $clean['dob'],
+            ':sex' => $clean['sex'],
+            ':phone' => $clean['phone'],
+            ':address' => $clean['address'],
         ]);
         return (int)$this->pdo->lastInsertId();
     }
@@ -29,33 +81,45 @@ class Patient
     // update patient
     public function update(int $id, array $data): void
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM patient WHERE patient_id = :id");
-        $stmt->execute([':id' => $id]);
-        $existing = $stmt->fetch();
+        $existing = $this->find($id);
+        // validation: valid & existing mutation ID
+        if (!$existing) {
+            throw new RuntimeException("Patient with ID {$id} not found.");
+        }
+
+        // merge incoming data with existing data
+        $merged = $existing ? array_intersect_key($existing, array_flip(self::FIELDS)) : [];
+        foreach (self::FIELDS as $field) {
+            if (array_key_exists($field, $data)) {
+                $merged[$field] = $data[$field];
+            }
+        }
+
+        // validate & process data
+        $clean = $this->processData($merged);
 
         $stmt = $this->pdo->prepare("
           UPDATE patient
-          SET first_name=:first_name,
-              last_name=:last_name,
-              dob=:dob,
-              sex=:sex,
-              phone=:phone,
-              address=:address,
-              diagnostic=:diagnostic
-          WHERE patient_id=:id
+          SET first_name = :first_name,
+              last_name = :last_name,
+              dob = :dob,
+              sex = :sex,
+              phone = :phone,
+              address = :address
+          WHERE patient_id = :id
         ");
         $stmt->execute([
-            ':first_name' => $data['first_name'] ?? $existing['first_name'],
-            ':last_name' => $data['last_name'] ?? $existing['last_name'],
-            ':dob' => $data['dob'] ?? $existing['dob'],
-            ':sex' => $data['sex'] ?? $existing['sex'],
-            ':phone' => $data['phone'] ?? $existing['phone'],
-            ':address' => $data['address'] ?? $existing['address'],
-            ':diagnostic' => $data['diagnostic'] ?? $existing['diagnostic'],
+            ':first_name' => $clean['first_name'],
+            ':last_name' => $clean['last_name'],
+            ':dob' => $clean['dob'],
+            ':sex' => $clean['sex'],
+            ':phone' => $clean['phone'],
+            ':address' => $clean['address'],
             ':id' => $id,
         ]);
     }
 
+    // find patient
     public function find(int $id): ?array
     {
         $stmt = $this->pdo->prepare("SELECT * FROM patient WHERE patient_id = :id");
@@ -67,7 +131,7 @@ class Patient
     // delete patient
     public function delete(int $id): void
     {
-        $stmt = $this->pdo->prepare("DELETE FROM patient WHERE patient_id=?");
+        $stmt = $this->pdo->prepare("DELETE FROM patient WHERE patient_id = ?");
         $stmt->execute([$id]);
     }
 
@@ -77,43 +141,50 @@ class Patient
         $sql = "SELECT * FROM patient WHERE 1=1";
         $params = [];
 
-        // name filter:
-        if (!empty($filters['first_name'])) {
-            $sql .= " AND (first_name LIKE :first_name)";
-            $params[':first_name'] = '%' . $filters['first_name'] . '%';
+        // equal
+        $equals = [
+            'first_name',
+            'last_name',
+            'sex',
+            'phone',
+        ];
+        foreach ($equals as $field) {
+            if (!empty($filters[$field])) {
+                $param = ":{$field}";
+                $sql .= " AND {$field} = {$param}";
+                $params[$param] = $filters[$field];
+            }
         }
-        if (!empty($filters['last_name'])) {
-            $sql .= " AND (last_name LIKE :last_name)";
-            $params[':last_name'] = '%' . $filters['last_name'] . '%';
-        }
-        // sex filter: exact match
-        if (!empty($filters['sex'])) {
-            $sql .= " AND sex = :sex";
-            $params[':sex'] = $filters['sex'];
-        }
-        // dob_from filter
+
+        // date range
         if (!empty($filters['dob_from'])) {
             $sql .= " AND dob >= :dob_from";
             $params[':dob_from'] = $filters['dob_from'];
         }
-        // dob_to filter
         if (!empty($filters['dob_to'])) {
             $sql .= " AND dob <= :dob_to";
             $params[':dob_to'] = $filters['dob_to'];
         }
-        // phone filter
-        if (!empty($filters['phone'])) {
-            $sql .= " AND phone = :phone";
-            $params[':phone'] = $filters['phone'];
-        }
-        $sql .= " ORDER BY last_name, first_name";
 
-        error_log($sql);
-        error_log(print_r($params, true));
+        // order
+        $sql .= " ORDER BY last_name, first_name";
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
 
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getMutations(int $id): ?array
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT m.*
+            FROM mutation AS m
+            JOIN patient_mutation AS pm
+                ON pm.mutation_id = m.mutation_id
+            WHERE pm.patient_id = :patient_id;
+        ");
+        $stmt->execute([':patient_id' => $id]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
