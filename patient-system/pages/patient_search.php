@@ -3,7 +3,7 @@
 require __DIR__ . '/../includes/db.php';
 require __DIR__ . '/../includes/Patient.php';
 
-$patientRepo = new Patient($pdo);
+$patient = new Patient($pdo);
 
 $err = '';
 $ok  = '';
@@ -11,31 +11,26 @@ $ok  = '';
 // Deletion (POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
   $id = (int) $_POST['delete_id'];
-
-  if ($id > 0) {
-    try {
-      $patientRepo->delete($id);
-      $ok = "Patient with ID {$id} has been deleted.";
-    } catch (PDOException $e) {
-      $err = 'Error deleting patient: ' . $e->getMessage();
-    }
-  } else {
-    $err = 'Invalid patient ID.';
+  try {
+    $patient->delete($id);
+    $ok = "Patient with ID {$id} has been deleted.";
+  } catch (PDOException $e) {
+    $err = 'Error deleting patient: ' . $e->getMessage();
   }
 }
 
 // Search 
 $filters = [
-  'first_name'     => trim($_GET['first_name']     ?? ''),
-  'last_name'     => trim($_GET['last_name']     ?? ''),
-  'sex'      => trim($_GET['sex']      ?? ''),
-  'dob_from' => trim($_GET['dob_from'] ?? ''),
-  'dob_to'   => trim($_GET['dob_to']   ?? ''),
-  'phone'     => trim($_GET['phone']     ?? ''),
+  'first_name'     => trim($_GET['first_name']     ?? null),
+  'last_name'     => trim($_GET['last_name']     ?? null),
+  'sex'      => $_GET['sex']      ?? null,
+  'dob_from' => $_GET['dob_from'] ?? null,
+  'dob_to'   => $_GET['dob_to']   ?? null,
+  'phone'     => trim($_GET['phone']     ?? null),
 ];
 
 // This will return all patients if all filters are empty
-$patients = $patientRepo->search($filters);
+$patients = $patient->search($filters);
 ?>
 <!doctype html>
 <html lang="en">
@@ -53,10 +48,6 @@ $patients = $patientRepo->search($filters);
     <div class="wrap">
       <div>
         <h1>Patient Management</h1>
-        <nav class="links">
-          Search Patients
-          Create Patient
-        </nav>
       </div>
     </div>
   </header>

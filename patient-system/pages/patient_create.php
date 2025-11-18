@@ -2,25 +2,22 @@
 require __DIR__ . '/../includes/db.php';
 require __DIR__ . '/../includes/Patient.php';
 
-$patientRepo = new Patient($pdo);
+$patient = new Patient($pdo);
 
 $err = '';
 $ok = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  // very minimal validation
-  $first = trim($_POST['first_name'] ?? '');
-  $last = trim($_POST['last_name'] ?? '');
   $data = [
-    'first_name' => $first,
-    'last_name' => $last,
+    'first_name' => trim($_POST['first_name']),
+    'last_name' => trim($_POST['last_name']),
     'dob' => $_POST['dob'],
     'sex' => $_POST['sex'],
     'phone' => $_POST['phone'] ?? null,
     'address' => $_POST['address'] ?? null,
     'diagnostic' => $_POST['diagnostic'] ?? null,
   ];
-  $id = $patientRepo->create($data);
+  $id = $patient->create($data);
   $ok = "Patient created with ID {$id}.";
 }
 ?>
