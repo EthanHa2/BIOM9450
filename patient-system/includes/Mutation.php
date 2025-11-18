@@ -92,13 +92,8 @@ class Mutation
     // update mutation
     public function update(int $id, array $data): void
     {
-        $existing = $this->find($id);
-        // validation: valid & existing mutation ID
-        if (!$existing) {
-            throw new RuntimeException("Mutation with ID {$id} not found.");
-        }
-
         // merge incoming data with existing data
+        $existing = $this->search(["mutation_id" => $id]);
         $merged = $existing ? array_intersect_key($existing, array_flip(self::FIELDS)) : [];
         foreach (self::FIELDS as $field) {
             if (array_key_exists($field, $data)) {
@@ -138,16 +133,6 @@ class Mutation
             ':id' => $id,
         ]);
     }
-
-    // find mutation
-    public function find(int $id): ?array
-    {
-        $stmt = $this->pdo->prepare("SELECT * FROM mutation WHERE mutation_id = :id");
-        $stmt->execute([':id' => $id]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row ?: null;
-    }
-
     // delete mutation
     public function delete(int $id): void
     {
@@ -155,6 +140,7 @@ class Mutation
         $stmt->execute([$id]);
     }
 
+    // search mutation
     public function search(array $filters = []): array
     {
         $sql = "SELECT * FROM mutation WHERE 1=1";
@@ -162,6 +148,7 @@ class Mutation
 
         // equal
         $equals = [
+            'mutation_id',
             'chromosome',
             'chromosome_start',
             'chromosome_end',

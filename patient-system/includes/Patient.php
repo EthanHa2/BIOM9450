@@ -38,6 +38,10 @@ class Patient
         $dates = ['dob'];
         Validator::date($data, $dates);
 
+        // validation: path
+        $paths = ['photo'];
+        Validator::path($data, $paths, __DIR__);
+
         // processing: trim strings
         $strings = [
             'first_name',
@@ -62,9 +66,9 @@ class Patient
 
         $stmt = $this->pdo->prepare("
           INSERT INTO patient
-            (first_name, last_name, dob, sex, phone, address)
+            (first_name, last_name, dob, sex, phone, address, photo)
           VALUES
-            (:first_name, :last_name, :dob, :sex, :phone, :address)
+            (:first_name, :last_name, :dob, :sex, :phone, :address, :photo)
         ");
 
         $stmt->execute([
@@ -74,6 +78,7 @@ class Patient
             ':sex' => $clean['sex'],
             ':phone' => $clean['phone'],
             ':address' => $clean['address'],
+            ':photo' => $clean['photo'],
         ]);
         return (int)$this->pdo->lastInsertId();
     }
@@ -81,13 +86,8 @@ class Patient
     // update patient
     public function update(int $id, array $data): void
     {
-        $existing = $this->find($id);
-        // validation: valid & existing mutation ID
-        if (!$existing) {
-            throw new RuntimeException("Patient with ID {$id} not found.");
-        }
-
         // merge incoming data with existing data
+        $existing = $this->search(['patient_id' => $id]);
         $merged = $existing ? array_intersect_key($existing, array_flip(self::FIELDS)) : [];
         foreach (self::FIELDS as $field) {
             if (array_key_exists($field, $data)) {
@@ -105,7 +105,8 @@ class Patient
               dob = :dob,
               sex = :sex,
               phone = :phone,
-              address = :address
+              address = :address,
+              photo = :photo
           WHERE patient_id = :id
         ");
         $stmt->execute([
@@ -115,17 +116,9 @@ class Patient
             ':sex' => $clean['sex'],
             ':phone' => $clean['phone'],
             ':address' => $clean['address'],
+            ':photo' => $clean['photo'],
             ':id' => $id,
         ]);
-    }
-
-    // find patient
-    public function find(int $id): ?array
-    {
-        $stmt = $this->pdo->prepare("SELECT * FROM patient WHERE patient_id = :id");
-        $stmt->execute([':id' => $id]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row ?: null;
     }
 
     // delete patient
@@ -143,10 +136,12 @@ class Patient
 
         // equal
         $equals = [
+            'patient_id',
             'first_name',
             'last_name',
             'sex',
             'phone',
+            'address',
         ];
         foreach ($equals as $field) {
             if (!empty($filters[$field])) {
@@ -175,6 +170,7 @@ class Patient
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    // get all mutations of given patient
     public function getMutations(int $id): ?array
     {
         $stmt = $this->pdo->prepare("
