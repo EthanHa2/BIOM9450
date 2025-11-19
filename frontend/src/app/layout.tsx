@@ -11,7 +11,7 @@ import {
 
 import "@mantine/notifications/styles.css";
 import { Notifications } from "@mantine/notifications";
-import { Navbar } from "@/components/Navbar";
+import { AppShell } from "@/components/AppShell";
 import { theme } from "./theme";
 
 const geistSans = Geist({
@@ -43,9 +43,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <MantineProvider theme={theme}>
-          <Navbar />
-          <Notifications />
-          <main className="pt-20">{children}</main>
+          <AppShell>
+            <Notifications />
+            {children}
+          </AppShell>
         </MantineProvider>
       </body>
     </html>
