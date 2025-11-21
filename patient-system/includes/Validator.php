@@ -31,7 +31,7 @@ final class Validator
 
 
     // date
-    public static function date(array $data, array $fields, string $format = 'Y-m-d'): void
+    public static function date(array $data, array $fields, string $format = 'Y-m-d', bool $requirePast = True): void
     {
         $today = new DateTime('today');
 
@@ -46,8 +46,21 @@ final class Validator
             }
 
             // date cannot be later than today
-            if ($dt > $today) {
+            if ($requirePast === True && $dt > $today) {
                 throw new InvalidArgumentException("Field {$field} cannot be later than today ({$today->format($format)}).");
+            }
+        }
+    }
+
+    // local file path
+    public static function path(array $data, array $fields, string $baseDir): void
+    {
+        foreach ($fields as $field) {
+            $value = (string)$data[$field];
+
+            $real = realpath($baseDir . DIRECTORY_SEPARATOR . $value);
+            if ($real === false || strncmp($real, $baseDir, strlen($baseDir)) !== 0) {
+                throw new InvalidArgumentException("File for field {$field} does not exist or is invalid.");
             }
         }
     }

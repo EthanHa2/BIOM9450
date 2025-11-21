@@ -35,13 +35,13 @@ class Phenotype
 
         // validation: patient_id & clinician_id
         $patientRepo = new Patient($this->pdo);
-        $existing = $patientRepo->find($data['patient_id']);
-        if (!$existing) {
+        $results  = $patientRepo->search($data['patient_id']);
+        if (!($results[0] ?? null)) {
             throw new InvalidArgumentException("Patient with ID {$data['patient_id']} not found.");
         }
         $clinicianRepo = new Clinician($this->pdo);
-        $existing = $clinicianRepo->find($data['clinician_id']);
-        if (!$existing) {
+        $results = $clinicianRepo->search($data['clinician_id']);
+        if (!($results[0] ?? null)) {
             throw new InvalidArgumentException("Clinician with ID {$data['clinician_id']} not found.");
         }
 
@@ -81,13 +81,8 @@ class Phenotype
     // update phenotype
     public function update(int $id, array $data): void
     {
-        $existing = $this->find($id);
-        // validation: valid & existing phenotype ID
-        if (!$existing) {
-            throw new RuntimeException("Phenotype with ID {$id} not found.");
-        }
-
         // merge incoming data with existing data
+        $existing = $this->search(["phenotype_id" => $id]);
         $merged = $existing ? array_intersect_key($existing, array_flip(self::FIELDS)) : [];
         foreach (self::FIELDS as $field) {
             if (array_key_exists($field, $data)) {
@@ -118,15 +113,6 @@ class Phenotype
         ]);
     }
 
-    // find phenotype
-    public function find(int $id): ?array
-    {
-        $stmt = $this->pdo->prepare("SELECT * FROM phenotype WHERE phenotype_id = :id");
-        $stmt->execute([':id' => $id]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row ?: null;
-    }
-
     // delete phenotype
     public function delete(int $id): void
     {
@@ -134,7 +120,7 @@ class Phenotype
         $stmt->execute([$id]);
     }
 
-    // search patient
+    // search phenotype
     public function search(array $filters = []): array
     {
         $sql = "SELECT * FROM phenotype WHERE 1=1";
@@ -142,6 +128,7 @@ class Phenotype
 
         // equal
         $equals = [
+            'phenotype_id',
             'patient_id',
             'clinician_id',
             'recorded_date',

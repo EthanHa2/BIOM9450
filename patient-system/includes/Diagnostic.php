@@ -38,13 +38,13 @@ class Diagnostic
 
         // validation: patient_id & clinician_id
         $patientRepo = new Patient($this->pdo);
-        $existing = $patientRepo->find($data['patient_id']);
-        if (!$existing) {
+        $results  = $patientRepo->search($data['patient_id']);
+        if (!($results[0] ?? null)) {
             throw new InvalidArgumentException("Patient with ID {$data['patient_id']} not found.");
         }
         $clinicianRepo = new Clinician($this->pdo);
-        $existing = $clinicianRepo->find($data['clinician_id']);
-        if (!$existing) {
+        $results = $clinicianRepo->search($data['clinician_id']);
+        if (!($results[0] ?? null)) {
             throw new InvalidArgumentException("Clinician with ID {$data['clinician_id']} not found.");
         }
 
@@ -89,13 +89,8 @@ class Diagnostic
     // update diagnostic
     public function update(int $id, array $data): void
     {
-        $existing = $this->find($id);
-        // validation: valid & existing diagnostic ID
-        if (!$existing) {
-            throw new RuntimeException("Diagnostic with ID {$id} not found.");
-        }
-
         // merge incoming data with existing data
+        $existing = $this->search(["diagnosis_id" => $id]);
         $merged = $existing ? array_intersect_key($existing, array_flip(self::FIELDS)) : [];
         foreach (self::FIELDS as $field) {
             if (array_key_exists($field, $data)) {
@@ -128,15 +123,6 @@ class Diagnostic
         ]);
     }
 
-    // find diagnostic
-    public function find(int $id): ?array
-    {
-        $stmt = $this->pdo->prepare("SELECT * FROM diagnostic WHERE diagnosis_id = :id");
-        $stmt->execute([':id' => $id]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row ?: null;
-    }
-
     // delete diagnostic
     public function delete(int $id): void
     {
@@ -144,4 +130,33 @@ class Diagnostic
         $stmt->execute([$id]);
     }
 
+    // search diagnostic
+    public function search(array $filters = []): array
+    {
+        $sql = "SELECT * FROM diagnostic WHERE 1=1";
+        $params = [];
+
+        // equal
+        $equals = [
+            'diagnosis_id',
+            'patient_id',
+            'clinician_id',
+            'diagnosis_date',
+            'diagnosis_type',
+            'description',
+            'treatment',
+        ];
+        foreach ($equals as $field) {
+            if (!empty($filters[$field])) {
+                $param = ":{$field}";
+                $sql .= " AND {$field} = {$param}";
+                $params[$param] = $filters[$field];
+            }
+        }
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }

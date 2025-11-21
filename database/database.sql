@@ -17,9 +17,9 @@ CREATE TABLE patient (
     patient_id INT AUTO_INCREMENT PRIMARY KEY,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
-    dob DATE,
-    sex ENUM('Male', 'Female', 'Other') DEFAULT NULL,
-    phone VARCHAR(20),
+    dob DATE NOT NULL,
+    sex ENUM('Male', 'Female', 'Other') NOT NULL,
+    phone VARCHAR(20) NOT NULL,
     address TEXT,
     photo TEXT
 ) ENGINE = InnoDB;
