@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-header('Access-Control-Allow-Origin: http://localhost:8000');
+header('Access-Control-Allow-Origin: http://localhost:3000');
 header('Access-Control-Allow-Headers: Content-Type');
 header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
 
@@ -44,12 +44,26 @@ function getJsonBody(): array
 // parse path
 $path = trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
 $parts = explode('/', $path);
-if (($parts[0] ?? null) !== 'api') {
-    json_response(404, ['error' => 'Not found']);
+
+// Supported resources
+$validResources = ['patient', 'mutation', 'diagnostic', 'phenotype'];
+
+// Find the first part that matches a valid resource
+$resourceIndex = -1;
+foreach ($parts as $index => $part) {
+    if (in_array($part, $validResources, true)) {
+        $resourceIndex = $index;
+        break;
+    }
 }
-$resource = $parts[1] ?? null;
-$id = isset($parts[2]) ? (int)$parts[2] : null;
-$sub = $parts[3] ?? null;
+
+if ($resourceIndex === -1) {
+    json_response(404, ['error' => 'Resource not found.', 'debug_parts' => $parts]);
+}
+
+$resource = $parts[$resourceIndex];
+$id = isset($parts[$resourceIndex + 1]) ? (int)$parts[$resourceIndex + 1] : null;
+$sub = $parts[$resourceIndex + 2] ?? null;
 $method = $_SERVER['REQUEST_METHOD'];
 
 

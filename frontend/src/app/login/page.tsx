@@ -5,48 +5,63 @@ import {
   PasswordInput,
   Paper,
   Title,
-  Container,
   Button,
   Group,
+  Text,
   Anchor,
 } from "@mantine/core";
-import { useForm } from "@mantine/form";
+import { useForm, isNotEmpty } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
-  const router = useRouter();
+  const { login } = useAuth();
   const form = useForm({
     initialValues: {
-      username: "",
+      email: "",
       password: "",
     },
     validate: {
-      username: (value) => (value.length > 0 ? null : "Username is rqeuired"),
-      password: (value) => (value.length > 0 ? null : "Password is rqeuired"),
+      email: (value) => (/^\S+@\S+$/.test(value) ? null : "Invalid email"),
+      password: isNotEmpty("Password is required"),
     },
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (values: typeof form.values) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
-      const response = await fetch("http://localhost:8080/login.php", {
+      const response = await fetch("/api/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Accept: "application/json",
         },
         body: JSON.stringify(values),
       });
+      const raw = await response.text();
+      interface LoginResponse {
+        success: boolean;
+        message: string;
+        user?: { clinician_id: number; email: string; name: string };
+      }
+      let result: LoginResponse;
+      try {
+        result = JSON.parse(raw) as LoginResponse;
+      } catch {
+        throw new Error(raw?.slice(0, 300) || "Non-JSON response from server");
+      }
 
-      const result = await response.json();
-
-      if (response.ok && result.success) {
+      if (response.ok && result.success && result.user) {
         notifications.show({
           title: "Login Successful",
-          message: `Welcome back, ${result.user.username}!`,
+          message: `Welcome back, ${result.user.name}!`,
           color: "green",
         });
 
-        router.push("/dashboard");
+        login(result.user); // Update global auth state
       } else {
         notifications.show({
           title: "Login Failed",
@@ -61,36 +76,49 @@ export default function LoginPage() {
         message: "Could not connect to the server. Please try again later.",
         color: "red",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
   return (
-    <Container size={420} my={40}>
-      <Title> Login</Title>
-      <Paper withBorder shadow="md" p={30} mt={30} radius="md">
+    <div className="flex flex-col items-center justify-center min-h-screen ">
+      <Title>Login</Title>
+      <Paper
+        withBorder
+        shadow="md"
+        p={30}
+        mt={30}
+        mb={80}
+        radius="md"
+        className="w-[420px]"
+      >
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <TextInput
-            label="Username"
-            placeholder="Your username"
-            required
-            {...form.getInputProps("username")}
+            label="Email"
+            placeholder="Your email"
+            withAsterisk
+            {...form.getInputProps("email")}
           />
           <PasswordInput
             label="Password"
             placeholder="Your password"
-            required
-            mt="md"
+            withAsterisk
+            mt="sm"
             {...form.getInputProps("password")}
           />
-          <Button fullWidth mt="xl" type="submit">
+          <Button fullWidth mt="xl" type="submit" loading={isSubmitting}>
             Login
           </Button>
         </form>
         <Group justify="center" mt="md">
-          <Anchor href="/register" fw={500}>
-            Don&apos;t have an account? Register
-          </Anchor>
+          <Text>
+            Don&apos;t have an account? {""}
+            <Anchor href="/register" fw={500}>
+              Register
+            </Anchor>
+          </Text>
         </Group>
       </Paper>
-    </Container>
+    </div>
   );
 }

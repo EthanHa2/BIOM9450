@@ -6,7 +6,7 @@ class Mutation
 {
     public function __construct(private PDO $pdo) {}
 
-    private const array FIELDS = [
+    private const FIELDS = [
         'chromosome',
         'chromosome_start',
         'chromosome_end',

@@ -6,7 +6,7 @@ class Phenotype
 {
     public function __construct(private PDO $pdo) {}
 
-    private const array FIELDS = [
+    private const FIELDS = [
         'patient_id',
         'clinician_id',
         'recorded_date',

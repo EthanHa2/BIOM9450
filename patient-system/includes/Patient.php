@@ -6,7 +6,7 @@ class Patient
 {
     public function __construct(private PDO $pdo) {}
 
-    private const array FIELDS = [
+    private const FIELDS = [
         'first_name',
         'last_name',
         'dob',
