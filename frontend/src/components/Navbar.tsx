@@ -12,7 +12,7 @@ export function Navbar() {
         <Image src={logo} alt="Logo" width={50} height={50} />
         <Title order={3}>
           <Link href="/" style={{ textDecoration: "none", color: "inherit" }}>
-            Name of app
+            GenoView
           </Link>
         </Title>
       </div>

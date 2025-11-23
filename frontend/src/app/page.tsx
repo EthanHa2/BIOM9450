@@ -7,17 +7,19 @@ import image from "@/assets/home.jpg";
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-row items-center justify-center gap-20 px-8 bg-background">
-      <div className="flex max-w-lg flex-col items-start gap-4">
+    <main className="flex grow-0 min-h-screen flex-row items-center justify-center gap-20 px-8 bg-background">
+      <div className="flex max-w-2xl flex-col items-start gap-4">
         <Title
           unstyled
-          className="bg-linear-to-r from-(--theme-primary) to-(--theme-secondary) bg-clip-text text-5xl font-bold text-transparent md:text-6xl pb-4"
+          className="bg-linear-to-r from-(--theme-primary) to-(--theme-secondary) bg-clip-text text-3xl font-bold text-transparent md:text-5xl pb-4"
         >
-          Patient Management System
+          Unified Patient Management & Diagnostic Reporting
         </Title>
         <Text className="text-lg text-slate-600">
-          Welcome to (name of app), your one-stop solution for all your patient
-          management needs.
+          Streamline your diagnostic process. From managing patient demographics
+          and treatment history to visualizing complex mutation
+          distributions—GenoView brings your entire clinical database into one
+          unified platform.
         </Text>
         <Button component={Link} href="/register" size="md" radius="xl">
           Sign Up Now!
@@ -26,8 +28,8 @@ export default function Home() {
       <Image
         src={image}
         alt="Health Illustration"
-        width={600}
-        height={600}
+        width={500}
+        height={500}
         className="hidden md:block"
       />
     </main>
