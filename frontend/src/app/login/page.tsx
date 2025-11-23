@@ -12,18 +12,18 @@ import {
 } from "@mantine/core";
 import { useForm, isNotEmpty } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
-  const router = useRouter();
+  const { login } = useAuth();
   const form = useForm({
     initialValues: {
-      username: "",
+      email: "",
       password: "",
     },
     validate: {
-      username: isNotEmpty("Username is required"),
+      email: (value) => (/^\S+@\S+$/.test(value) ? null : "Invalid email"),
       password: isNotEmpty("Password is required"),
     },
   });
@@ -39,14 +39,13 @@ export default function LoginPage() {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        credentials: "include",
         body: JSON.stringify(values),
       });
       const raw = await response.text();
       interface LoginResponse {
         success: boolean;
         message: string;
-        user?: { clinician_id: number; username: string };
+        user?: { clinician_id: number; email: string; name: string };
       }
       let result: LoginResponse;
       try {
@@ -55,14 +54,14 @@ export default function LoginPage() {
         throw new Error(raw?.slice(0, 300) || "Non-JSON response from server");
       }
 
-      if (response.ok && result.success) {
+      if (response.ok && result.success && result.user) {
         notifications.show({
           title: "Login Successful",
-          message: `Welcome back, ${result.user?.username}!`,
+          message: `Welcome back, ${result.user.name}!`,
           color: "green",
         });
 
-        router.push("/dashboard");
+        login(result.user); // Update global auth state
       } else {
         notifications.show({
           title: "Login Failed",
@@ -95,10 +94,10 @@ export default function LoginPage() {
       >
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <TextInput
-            label="Username"
-            placeholder="Your username"
+            label="Email"
+            placeholder="Your email"
             withAsterisk
-            {...form.getInputProps("username")}
+            {...form.getInputProps("email")}
           />
           <PasswordInput
             label="Password"

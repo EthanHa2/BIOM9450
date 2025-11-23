@@ -16,11 +16,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // Receive json data
 $data = json_decode(file_get_contents("php://input"), true);
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-  $username = trim($data['username'] ?? "");
+  $email = trim($data['email'] ?? "");
   $password = $data['password'] ?? "";
 
-  $stmt = $conn->prepare("SELECT clinician_id, username, password_hash FROM clinician WHERE username=? LIMIT 1");
-  $stmt->bind_param("s", $username);
+  $stmt = $conn->prepare("SELECT clinician_id, email, password_hash, first_name, last_name FROM clinician WHERE email=? LIMIT 1");
+  $stmt->bind_param("s", $email);
   $stmt->execute();
   $result = $stmt->get_result();
   $user = $result->fetch_assoc();
@@ -28,7 +28,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   if ($user && password_verify($password, $user['password_hash'])) {
     session_regenerate_id(true); // prevent fixation
     $_SESSION['clinician_id'] = $user['clinician_id'];
-    $_SESSION['username']     = $user['username'];
+    $_SESSION['email']        = $user['email'];
 
     // Optional: record login
     // $ip = $_SERVER['REMOTE_ADDR'] ?? '';
@@ -38,18 +38,23 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     // send json response
     echo json_encode(
-      ['success' => true,
-      'message' => 'Login successful',
-      'user' => [
-        'clinician_id' => $user['clinician_id'],
-         'username' => $user['username']]]
-        );
+      [
+        'success' => true,
+        'message' => 'Login successful',
+        'user' => [
+          'clinician_id' => $user['clinician_id'],
+          'email' => $user['email'],
+          'name' => $user['first_name'] . ' ' . $user['last_name']
+        ]
+      ]
+    );
     exit();
   } else {
     http_response_code(401);
-    echo json_encode(['success' => false, 
-    'message' => 'Invalid username or password.']);
+    echo json_encode([
+      'success' => false,
+      'message' => 'Invalid username or password.'
+    ]);
     exit();
   }
 }
-?>

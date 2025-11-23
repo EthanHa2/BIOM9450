@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
       // Proxy PHP backend served by XAMPP so frontend can call same-origin 
       { source: "/api/login", destination: `${phpBaseUrl}/login.php` },
       { source: "/api/register", destination: `${phpBaseUrl}/register.php` },
+      { source: "/api/:path*", destination: `${phpBaseUrl}/api/api.php/:path*` },
     ];
   },
 };

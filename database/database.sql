@@ -5,7 +5,7 @@ SET sql_mode = 'STRICT_ALL_TABLES';
 -- 1) TABLES
 CREATE TABLE clinician (
     clinician_id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(100) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
@@ -94,10 +94,10 @@ CREATE TABLE category (
     CONSTRAINT fk_category_patient FOREIGN KEY (patient_id) REFERENCES patient(patient_id) ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE = InnoDB;
 -- 2) SEED DATA (randomly generated)
-INSERT INTO clinician (
+    INSERT INTO clinician (
         first_name,
         last_name,
-        username,
+        email,
         password_hash,
         specialty,
         phone,

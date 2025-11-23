@@ -19,16 +19,16 @@ export default function RegisterPage() {
   const router = useRouter();
   const form = useForm({
     initialValues: {
-      name: "",
-      username: "",
+      first_name: "",
+      last_name: "",
       password: "",
       specialty: "",
       email: "",
       phone: "",
     },
     validate: {
-      name: isNotEmpty("Name is required"),
-      username: isNotEmpty("Username is required"),
+      first_name: isNotEmpty("First Name is required"),
+      last_name: isNotEmpty("Last Name is required"),
       email: (value) => {
         if (value.length === 0) return "Email is required";
         return validateEmail(value)
@@ -66,7 +66,6 @@ export default function RegisterPage() {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        credentials: "include",
         body: JSON.stringify(values),
       });
       const raw = await response.text();
@@ -123,19 +122,20 @@ export default function RegisterPage() {
         mb={30}
       >
         <form onSubmit={form.onSubmit(handleSubmit)}>
-          <TextInput
-            label="Name"
-            placeholder="Your name"
-            withAsterisk
-            {...form.getInputProps("name")}
-          />
-          <TextInput
-            label="Username"
-            placeholder="Your username"
-            withAsterisk
-            {...form.getInputProps("username")}
-            mt="sm"
-          />
+          <Group grow>
+            <TextInput
+              label="First Name"
+              placeholder="First Name"
+              withAsterisk
+              {...form.getInputProps("first_name")}
+            />
+            <TextInput
+              label="Last Name"
+              placeholder="Last Name"
+              withAsterisk
+              {...form.getInputProps("last_name")}
+            />
+          </Group>
           <TextInput
             label="Email"
             placeholder="Your Email"
