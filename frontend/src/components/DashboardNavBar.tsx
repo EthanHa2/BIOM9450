@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import {
   IconDna2,
   IconChartPieFilled,
@@ -19,7 +20,7 @@ interface NavbarLinkProps {
 
 const NAVBAR_CLASSES =
   "w-20 min-h-screen p-4 flex flex-col bg-[var(--theme-primary)] text-white shadow-sm";
-const NAVBAR_MAIN_CLASSES = "flex-1 mt-12";
+const NAVBAR_MAIN_CLASSES = "flex-1 flex flex-col justify-center";
 const BASE_LINK_CLASSES =
   "w-12 h-12 rounded-md flex items-center justify-center transition-colors";
 const INACTIVE_LINK_CLASSES =
@@ -50,21 +51,27 @@ function NavbarLink({ icon: Icon, label, active, onClick }: NavbarLinkProps) {
   );
 }
 
-const mockdata = [
-  { icon: IconUsers, label: "Patients" },
-  { icon: IconChartPieFilled, label: "Visualisations" },
-  { icon: IconDna2, label: "Mutations" },
+const navItems = [
+  { icon: IconUsers, label: "Patients", path: "/dashboard" },
+  {
+    icon: IconChartPieFilled,
+    label: "Visualisations",
+    path: "/dashboard/visualisations",
+  },
+  { icon: IconDna2, label: "Mutations", path: "/dashboard/mutations" },
 ];
 
 export function DashboardNavBar() {
-  const [active, setActive] = useState(2);
+  const pathname = usePathname();
+  const router = useRouter();
+  const { logout } = useAuth();
 
-  const links = mockdata.map((link, index) => (
+  const links = navItems.map((item) => (
     <NavbarLink
-      {...link}
-      key={link.label}
-      active={index === active}
-      onClick={() => setActive(index)}
+      {...item}
+      key={item.label}
+      active={pathname === item.path}
+      onClick={() => router.push(item.path)}
     />
   ));
 
@@ -75,14 +82,14 @@ export function DashboardNavBar() {
       </Center>
 
       <div className={NAVBAR_MAIN_CLASSES}>
-        <Stack justify="center" gap={0}>
+        <Stack justify="center" gap={5}>
           {links}
         </Stack>
       </div>
 
-      <Stack justify="center" gap={0}>
+      <Stack justify="center" gap={5}>
         <NavbarLink icon={IconUserFilled} label="Clinician Profile" />
-        <NavbarLink icon={IconLogout} label="Sign Out" />
+        <NavbarLink icon={IconLogout} label="Sign Out" onClick={logout} />
       </Stack>
     </nav>
   );
