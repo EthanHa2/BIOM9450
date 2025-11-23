@@ -3,8 +3,12 @@ BIO9450 Major Project: Patient Management and Diagnostic Reporting System Ethan,
 
 # Instructions
 ## Start frontend localhost
-`cd frontend`
-`npm run dev`
+```
+cd frontend
+npm install
+npm run dev
+
+```
 
 ## Set up backend
 1. Copy "patient-system" into htdocs xampp/htdocs
