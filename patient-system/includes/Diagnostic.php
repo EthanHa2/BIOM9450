@@ -38,13 +38,13 @@ class Diagnostic
 
         // validation: patient_id & clinician_id
         $patientRepo = new Patient($this->pdo);
-        $results  = $patientRepo->search($data['patient_id']);
+        $results  = $patientRepo->search(['patient_id' => $data['patient_id']]);
         if (!($results[0] ?? null)) {
             throw new InvalidArgumentException("Patient with ID {$data['patient_id']} not found.");
         }
         $clinicianRepo = new Clinician($this->pdo);
-        $results = $clinicianRepo->search($data['clinician_id']);
-        if (!($results[0] ?? null)) {
+        $clinician = $clinicianRepo->find((int)$data['clinician_id']);
+        if (!$clinician) {
             throw new InvalidArgumentException("Clinician with ID {$data['clinician_id']} not found.");
         }
 
@@ -71,15 +71,16 @@ class Diagnostic
 
         $stmt = $this->pdo->prepare("
           INSERT INTO diagnostic
-            (patient_id, clinician_id, diagnosis_date, description, treatment)
+            (patient_id, clinician_id, diagnosis_date, diagnosis_type, description, treatment)
           VALUES
-            (:patient_id, :clinician_id, :diagnosis_date, :description, :treatment)
+            (:patient_id, :clinician_id, :diagnosis_date, :diagnosis_type, :description, :treatment)
         ");
 
         $stmt->execute([
             ':patient_id' => $clean['patient_id'],
             ':clinician_id' => $clean['clinician_id'],
             ':diagnosis_date' => $clean['diagnosis_date'],
+            ':diagnosis_type' => $clean['diagnosis_type'],
             ':description' => $clean['description'],
             ':treatment' => $clean['treatment'],
         ]);
@@ -104,11 +105,12 @@ class Diagnostic
         // prepare query
         $stmt = $this->pdo->prepare("
           UPDATE diagnostic
-          SET chromosome = :patient_id,
+          SET patient_id = :patient_id,
               clinician_id = :clinician_id,
               diagnosis_date = :diagnosis_date,
+              diagnosis_type = :diagnosis_type,
               description = :description,
-              treatment = :treatment,
+              treatment = :treatment
           WHERE diagnosis_id = :id
         ");
 
@@ -117,6 +119,7 @@ class Diagnostic
             ':patient_id' => $clean['patient_id'],
             ':clinician_id' => $clean['clinician_id'],
             ':diagnosis_date' => $clean['diagnosis_date'],
+            ':diagnosis_type' => $clean['diagnosis_type'],
             ':description' => $clean['description'],
             ':treatment' => $clean['treatment'],
             ':id' => $id,
