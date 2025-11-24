@@ -2,9 +2,15 @@
 
 import { Button, Badge, Loader } from "@mantine/core";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 import { DashboardNavBar } from "@/components/DashboardNavBar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import {
+  SearchFilterModal,
+  FilterValues,
+} from "@/components/SearchFilterModal";
+import { IconSearch, IconUpload, IconDownload } from "@tabler/icons-react";
 
 interface Patient {
   patient_id: number;
@@ -15,6 +21,7 @@ interface Patient {
   diagnosis?: string;
   treatment?: string;
   phenotypes?: string[];
+  mutations?: Mutation[];
 }
 
 interface Diagnostic {
@@ -27,20 +34,40 @@ interface Phenotype {
   description: string;
 }
 
+interface Mutation {
+  gene_affected: string;
+  mutation_type: string;
+  consequence_type: string;
+}
+
 function PatientCard({ patient }: { patient: Patient }) {
   const fullName = `${patient.first_name} ${patient.last_name}`;
-  const age = new Date().getFullYear() - new Date(patient.dob).getFullYear();
+
+  // Format DOB to Australian format (DD/MM/YYYY)
+  const formattedDob = patient.dob
+    ? new Date(patient.dob).toLocaleDateString("en-AU", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })
+    : "N/A";
 
   return (
     <div className="bg-gray-50 p-6 rounded-xl border border-transparent shadow-md hover:border-gray-200 hover:shadow-lg transition-all duration-200">
-      <div className="flex justify-between items-start mb-">
+      <div className="flex justify-between items-start mb-4">
         <div className="flex items-baseline gap-2">
           <h3 className="text-2xl font-bold text-gray-900">{fullName}</h3>
           <span className="text-md text-gray-500">
             ID: {patient.patient_id}
           </span>
         </div>
-        <Button variant="filled" radius="xl" size="sm">
+        <Button
+          component={Link}
+          href={`/dashboard/patient/${patient.patient_id}`}
+          variant="filled"
+          radius="xl"
+          size="sm"
+        >
           View Details
         </Button>
       </div>
@@ -52,9 +79,9 @@ function PatientCard({ patient }: { patient: Patient }) {
         </div>
         <div className="flex gap-1">
           <span className="font-semibold text-gray-500 min-w-[100px]">
-            Age:
+            DOB:
           </span>
-          <span>{age}</span>
+          <span>{formattedDob}</span>
         </div>
         <div className="flex gap-1">
           <span className="font-semibold text-gray-500 min-w-[100px]">
@@ -98,8 +125,10 @@ function PatientCard({ patient }: { patient: Patient }) {
 const API_BASE_URL = "/api";
 
 export default function DashboardPage() {
-  const [patients, setPatients] = useState<Patient[]>([]);
+  const [allPatients, setAllPatients] = useState<Patient[]>([]);
+  const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -126,6 +155,13 @@ export default function DashboardPage() {
             const phenoData = await phenoRes.json();
             const phenotypes: Phenotype[] = phenoData.phenotypes || [];
 
+            // Fetch Mutations
+            const mutRes = await fetch(
+              `${API_BASE_URL}/patient/${p.patient_id}/mutation`
+            );
+            const mutData = await mutRes.json();
+            const mutations: Mutation[] = mutData.mutations || [];
+
             // get diagnosis (taking the first one for now)
             const primaryDiag = diagnostics[0];
 
@@ -140,11 +176,13 @@ export default function DashboardPage() {
               diagnosis: primaryDiag ? primaryDiag.diagnosis_type : null,
               treatment: primaryDiag ? primaryDiag.treatment : null,
               phenotypes: phenotypeList,
+              mutations: mutations,
             };
           })
         );
 
-        setPatients(fullPatients);
+        setAllPatients(fullPatients);
+        setFilteredPatients(fullPatients);
       } catch (error) {
         console.error("Failed to fetch data:", error);
       } finally {
@@ -154,6 +192,97 @@ export default function DashboardPage() {
 
     fetchData();
   }, []);
+
+  const handleApplyFilters = (filters: FilterValues) => {
+    const filtered = allPatients.filter((patient) => {
+      // ID Filter
+      if (
+        filters.patientId &&
+        patient.patient_id.toString() !== filters.patientId
+      ) {
+        return false;
+      }
+
+      // First Name Filter
+      if (
+        filters.firstName &&
+        !patient.first_name
+          .toLowerCase()
+          .includes(filters.firstName.toLowerCase())
+      ) {
+        return false;
+      }
+
+      // Last Name Filter
+      if (
+        filters.lastName &&
+        !patient.last_name
+          .toLowerCase()
+          .includes(filters.lastName.toLowerCase())
+      ) {
+        return false;
+      }
+
+      // DOB Filter
+      if (filters.dobFrom) {
+        const dobDate = new Date(patient.dob);
+        if (dobDate < filters.dobFrom) {
+          return false;
+        }
+      }
+      if (filters.dobTo) {
+        const dobDate = new Date(patient.dob);
+        if (dobDate > filters.dobTo) {
+          return false;
+        }
+      }
+
+      // Sex Filter
+      if (
+        filters.sex &&
+        patient.sex.toLowerCase() !== filters.sex.toLowerCase()
+      ) {
+        return false;
+      }
+
+      // Diagnostics Filter
+      if (filters.diagnostics && filters.diagnostics.length > 0) {
+        if (!patient.diagnosis) return false;
+        if (
+          !filters.diagnostics.some(
+            (d) => patient.diagnosis!.toLowerCase() === d.toLowerCase()
+          )
+        ) {
+          return false;
+        }
+      }
+
+      // Treatment Filter
+      if (filters.treatment) {
+        if (!patient.treatment) return false;
+        if (
+          patient.treatment.toLowerCase() !== filters.treatment.toLowerCase()
+        ) {
+          return false;
+        }
+      }
+
+      // Phenotypes Filter
+      if (filters.phenotypes.length > 0) {
+        if (!patient.phenotypes) return false;
+        const hasAll = filters.phenotypes.every((ph) =>
+          patient.phenotypes!.some((p) =>
+            p.toLowerCase().includes(ph.toLowerCase())
+          )
+        );
+        if (!hasAll) return false;
+      }
+
+      return true;
+    });
+
+    setFilteredPatients(filtered);
+  };
 
   return (
     <ProtectedRoute>
@@ -167,15 +296,31 @@ export default function DashboardPage() {
 
           {/* Controls Row */}
           <div className="flex justify-between items-center mb-8">
-            <Button variant="filled" size="md" radius="md">
+            <Button
+              variant="filled"
+              size="md"
+              radius="md"
+              onClick={() => setIsFilterOpen(true)}
+              leftSection={<IconSearch />}
+            >
               Search & Filter
             </Button>
 
             <div className="flex gap-4">
-              <Button variant="filled" size="md" radius="md">
+              <Button
+                variant="light"
+                size="md"
+                radius="md"
+                leftSection={<IconUpload />}
+              >
                 Upload Patients
               </Button>
-              <Button variant="filled" size="md" radius="md">
+              <Button
+                variant="light"
+                size="md"
+                radius="md"
+                leftSection={<IconDownload />}
+              >
                 Download Report
               </Button>
             </div>
@@ -188,12 +333,23 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {patients.map((patient) => (
+              {filteredPatients.map((patient) => (
                 <PatientCard key={patient.patient_id} patient={patient} />
               ))}
+              {filteredPatients.length === 0 && (
+                <div className="col-span-2 text-3xl text-center text-gray-500 py-10">
+                  No patients found matching criteria.
+                </div>
+              )}
             </div>
           )}
         </main>
+
+        <SearchFilterModal
+          opened={isFilterOpen}
+          onClose={() => setIsFilterOpen(false)}
+          onApply={handleApplyFilters}
+        />
       </div>
     </ProtectedRoute>
   );
