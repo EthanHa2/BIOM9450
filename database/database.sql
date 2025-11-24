@@ -17,22 +17,19 @@ CREATE TABLE clinician (
 ) ENGINE=InnoDB;
 
 CREATE TABLE patient (
-  patient_id         INT AUTO_INCREMENT PRIMARY KEY,
-  name               VARCHAR(100) NOT NULL,
-  date_of_birth      DATE,
+  patient_id         INT PRIMARY KEY, -- specimen_id
+  first_name         VARCHAR(100),
+  last_name          VARCHAR(100),
+  dob                DATE,
   sex                ENUM('Male','Female','Other') DEFAULT NULL,
   phone              VARCHAR(20),
   address            TEXT,
-  diagnostic_summary TEXT,
-  created_by         INT,
-  CONSTRAINT fk_patient_created_by
-    FOREIGN KEY (created_by) REFERENCES clinician(clinician_id)
-      ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE diagnostics (
   diagnosis_id     INT AUTO_INCREMENT PRIMARY KEY,
   patient_id       INT NOT NULL,
+  mutation_id      INT NOT NULL,
   diagnosis_type   VARCHAR(100) NOT NULL,
   diagnosis_details TEXT,
   diagnosis_date   DATE,
@@ -42,23 +39,22 @@ CREATE TABLE diagnostics (
       ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
-CREATE TABLE phenotypes (
-  phenotype_id   INT AUTO_INCREMENT PRIMARY KEY,
-  patient_id     INT NOT NULL,
-  description    TEXT NOT NULL,
-  recorded_date  DATE NOT NULL DEFAULT (CURRENT_DATE),
-  INDEX idx_pheno_patient (patient_id, recorded_date),
-  FULLTEXT INDEX ftx_pheno_description (description),
-  CONSTRAINT fk_pheno_patient
-    FOREIGN KEY (patient_id) REFERENCES patient(patient_id)
-      ON UPDATE CASCADE ON DELETE CASCADE
-) ENGINE=InnoDB;
+-- CREATE TABLE phenotypes (
+--   phenotype_id   INT AUTO_INCREMENT PRIMARY KEY,
+--   patient_id     INT NOT NULL,
+--   description    TEXT NOT NULL,
+--   recorded_date  DATE NOT NULL DEFAULT (CURRENT_DATE),
+--   INDEX idx_pheno_patient (patient_id, recorded_date),
+--   FULLTEXT INDEX ftx_pheno_description (description),
+--   CONSTRAINT fk_pheno_patient
+--     FOREIGN KEY (patient_id) REFERENCES patient(patient_id)
+--       ON UPDATE CASCADE ON DELETE CASCADE
+-- ) ENGINE=InnoDB;
 
 DROP TABLE IF EXISTS mutation_variants;
 
 CREATE TABLE mutation_variants (
   mutation_id        INT AUTO_INCREMENT PRIMARY KEY,
-  icgc_specimen_id   VARCHAR(50),
   chromosome         VARCHAR(10),
   chromosome_start   INT,
   chromosome_end     INT,
@@ -67,7 +63,6 @@ CREATE TABLE mutation_variants (
   mutated_to_allele   VARCHAR(10),
   consequence_type    VARCHAR(100),
   gene_affected       VARCHAR(50),
-  cancer_type         VARCHAR(100)
 ) ENGINE=InnoDB;
 
 
@@ -104,6 +99,14 @@ CREATE TABLE category (
   CONSTRAINT fk_category_patient
     FOREIGN KEY (patient_id) REFERENCES patient(patient_id)
       ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE patient_mutations (
+  patient_id   INT NOT NULL,
+  mutation_id  INT NOT NULL,
+  PRIMARY KEY (patient_id, mutation_id),
+  FOREIGN KEY (patient_id)  REFERENCES patients(patient_id),
+  FOREIGN KEY (mutation_id) REFERENCES mutation_variants(mutation_id)
 ) ENGINE=InnoDB;
 
 -- 2) SEED DATA (randomly generated)
