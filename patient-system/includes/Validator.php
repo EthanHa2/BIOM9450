@@ -41,7 +41,11 @@ final class Validator
             $errors = DateTime::getLastErrors();
 
             // valid date
-            if (!$dt || $errors['warning_count'] > 0 || $errors['error_count'] > 0) {
+            if (!$dt) {
+                throw new InvalidArgumentException("Field {$field} must be a valid date ({$format}).");
+            }
+
+            if (is_array($errors) && ($errors['warning_count'] > 0 || $errors['error_count'] > 0)) {
                 throw new InvalidArgumentException("Field {$field} must be a valid date ({$format}).");
             }
 
