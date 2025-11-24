@@ -18,7 +18,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   login: (user: User) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -30,8 +30,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    // Check for saved user session on mount
-    const storedUser = localStorage.getItem("user");
+    // Restore user from localStorage (non-sensitive snapshot for UX only)
+    const storedUser = typeof window !== "undefined"
+      ? localStorage.getItem("user")
+      : null;
+
     if (storedUser) {
       try {
         setUser(JSON.parse(storedUser));
@@ -44,14 +47,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = (userData: User) => {
+    // Only store non-sensitive data on client
     setUser(userData);
     localStorage.setItem("user", JSON.stringify(userData));
     router.push("/dashboard");
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      // Call backend to destroy PHP session & log logout
+      await fetch(
+        "http://localhost/BIOM9450_MajorProject/BIOM9450/patient-system/logout.php", // <-- change to your actual path
+        {
+          method: "POST",
+          credentials: "include", // send PHP session cookie
+        }
+      );
+    } catch (err) {
+      console.error("Logout request failed:", err);
+      // Even if backend fails, still clear client state to prevent access
+    }
+
     setUser(null);
-    localStorage.removeItem("user");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("user");
+    }
     router.push("/login");
   };
 

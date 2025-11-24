@@ -60,7 +60,7 @@ export default function RegisterPage() {
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/register", {
+      const response = await fetch("http://localhost/BIOM9450_MajorProject/BIOM9450/patient-system/register.php", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
