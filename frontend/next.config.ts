@@ -24,6 +24,10 @@ const nextConfig: NextConfig = {
         source: "/api/register", 
         destination: `${phpBaseUrl}/register.php` 
       },
+      { 
+        source: "/api/predict", 
+        destination: `${phpBaseUrl}/predict.php` 
+      },
 
       // Map Auth Files
       { 

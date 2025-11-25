@@ -53,12 +53,72 @@ export function AddMutationModal({
 }: AddMutationModalProps) {
   const [formData, setFormData] = useState<MutationFormData>(defaultData);
   const [submitting, setSubmitting] = useState(false);
+  const [predicting, setPredicting] = useState(false);
+  const [predictionInfo, setPredictionInfo] = useState<string | null>(null);
 
   useEffect(() => {
     if (opened) {
       setFormData(initialData || defaultData);
+      setPredictionInfo(null);
     }
   }, [opened, initialData]);
+
+  const handlePredict = async () => {
+    const {
+      chromosome_start,
+      chromosome_end,
+      mutated_from_allele,
+      mutated_to_allele,
+      gene_affected,
+    } = formData;
+
+    if (
+      !chromosome_start ||
+      !chromosome_end ||
+      !mutated_from_allele ||
+      !mutated_to_allele ||
+      !gene_affected
+    ) {
+      return; // Should be disabled in UI
+    }
+
+    setPredicting(true);
+    setPredictionInfo(null);
+
+    try {
+      const res = await fetch("/api/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chromosome_start,
+          chromosome_end,
+          mutated_from_allele,
+          mutated_to_allele,
+          gene_affected,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.error || "Prediction failed");
+      }
+
+      const data = await res.json();
+      if (data.predicted_cancer_type) {
+        handleChange("cancer_type", data.predicted_cancer_type);
+        setPredictionInfo(`${data.display_text}`);
+      } else {
+        setPredictionInfo("Could not predict cancer type.");
+      }
+    } catch (e) {
+      console.error(e);
+      const errorMessage =
+        e instanceof Error ? e.message : "Error running prediction.";
+      setPredictionInfo(errorMessage);
+    } finally {
+      setPredicting(false);
+    }
+  };
 
   const handleSubmit = async () => {
     try {
@@ -220,7 +280,7 @@ export function AddMutationModal({
         </Group>
 
         {/* Row 4: Impact */}
-        <Group grow>
+        <Group grow align="flex-start">
           <TextInput
             label="Consequence Type"
             placeholder="e.g., Missense Variant"
@@ -229,14 +289,39 @@ export function AddMutationModal({
             required
             radius="md"
           />
-          <TextInput
-            label="Cancer Type"
-            placeholder="e.g., BRCA-US"
-            value={formData.cancer_type}
-            onChange={(e) => handleChange("cancer_type", e.target.value)}
-            radius="md"
-            // Keep Optional as it wasn't in your $required array
-          />
+          <div>
+            <TextInput
+              label="Cancer Type"
+              placeholder="e.g., BRCA-US"
+              value={formData.cancer_type}
+              onChange={(e) => handleChange("cancer_type", e.target.value)}
+              radius="md"
+              // Keep Optional as it wasn't in your $required array
+            />
+            <Group justify="space-between" mt={5} align="center">
+              <Button
+                size="xs"
+                variant="light"
+                color="grape"
+                onClick={handlePredict}
+                loading={predicting}
+                disabled={
+                  !formData.chromosome_start ||
+                  !formData.chromosome_end ||
+                  !formData.mutated_from_allele ||
+                  !formData.mutated_to_allele ||
+                  !formData.gene_affected
+                }
+              >
+                ✨ Predict with AI
+              </Button>
+              {predictionInfo && (
+                <Text size="xs" c="dimmed" style={{ lineHeight: 1.2 }}>
+                  {predictionInfo}
+                </Text>
+              )}
+            </Group>
+          </div>
         </Group>
 
         <Group justify="flex-end" mt="md">

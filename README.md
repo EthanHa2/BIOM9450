@@ -36,6 +36,10 @@ npm run dev
 
 ## Set up backend
 1. Copy "patient-system" into htdocs xampp/htdocs
-2. Start apache and SQL server
-3. Access the admin dashboard and import the database.sql
+2. **IMPORTANT**: Also copy the "machine_learning" folder into htdocs
+   - Structure should be:
+     - xampp/htdocs/patient-system/
+     - xampp/htdocs/machine_learning/
+3. Start apache and SQL server
+4. Access the admin dashboard and import the database.sql
 
