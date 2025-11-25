@@ -459,10 +459,35 @@ export default function PatientDetailsPage() {
     }
   };
 
-  const handleSaveMutation = async (data: MutationFormData) => {
+  const handleSaveMutation = async (data: MutationFormData | number) => {
     if (!patient) return;
 
     try {
+      let res;
+
+      if (typeof data === "number") {
+        const payload = {
+          patient_id: patient.patient_id,
+          mutation_id: data,
+        };
+
+        res = await fetch(`${API_BASE_URL}/mutation`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) throw new Error("Failed to link mutation");
+
+        // Refresh mutations list
+        const mRes = await fetch(
+          `${API_BASE_URL}/patient/${patient.patient_id}/mutations`
+        );
+        const mData = await mRes.json();
+        setMutations(mData.mutations || []);
+        return;
+      }
+
       // Prepare payload - convert empty strings to null or keep as is depending on backend
       const payload = {
         ...data,
@@ -472,7 +497,6 @@ export default function PatientDetailsPage() {
         chromosome_end: Number(data.chromosome_end) || 0,
       };
 
-      let res;
       if (editingMutation) {
         // UPDATE
         res = await fetch(
@@ -522,6 +546,29 @@ export default function PatientDetailsPage() {
       console.error("Error saving mutation:", error);
       alert("Failed to save mutation.");
       throw error;
+    }
+  };
+
+  const handleUnlinkMutation = async (mutationId: number) => {
+    if (!patient) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/mutation/unlink`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patient_id: patient.patient_id,
+          mutation_id: mutationId,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to unlink mutation");
+
+      setMutations((prev) =>
+        prev.filter((mutation) => mutation.mutation_id !== mutationId)
+      );
+    } catch (error) {
+      console.error("Error unlinking mutation:", error);
+      alert("Failed to unlink mutation.");
     }
   };
 
@@ -938,6 +985,15 @@ export default function PatientDetailsPage() {
                               >
                                 <IconTrash size={16} />
                               </ActionIcon>
+                              <Button
+                                size="xs"
+                                variant="default"
+                                onClick={() =>
+                                  handleUnlinkMutation(item.mutation_id)
+                                }
+                              >
+                                Unlink
+                              </Button>
                             </Group>
                           </Table.Td>
                         </Table.Tr>
@@ -997,6 +1053,7 @@ export default function PatientDetailsPage() {
           opened={isAddMutationOpen}
           onClose={handleModalClose}
           onApply={handleSaveMutation}
+          searchEnabled={!editingMutation}
           initialData={
             editingMutation
               ? {
