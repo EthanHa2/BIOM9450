@@ -3,6 +3,7 @@
 import {
   Modal,
   TextInput,
+  NumberInput,
   Select,
   Button,
   Group,
@@ -98,12 +99,36 @@ export function MutationFilterModal({
   onApply,
 }: MutationFilterModalProps) {
   const [filters, setFilters] = useState<MutationFilterValues>(initialFilters);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const handleClear = () => {
     setFilters(initialFilters);
+    setValidationError(null);
   };
 
   const handleApply = () => {
+    // Validate range if either start or end is provided
+    if (
+      (filters.chromosomeStart && !filters.chromosomeEnd) ||
+      (!filters.chromosomeStart && filters.chromosomeEnd)
+    ) {
+      setValidationError(
+        "Please provide both start and end values for the chromosome range."
+      );
+      return;
+    }
+
+    // Validate start is not greater than end
+    if (
+      filters.chromosomeStart &&
+      filters.chromosomeEnd &&
+      Number(filters.chromosomeStart) > Number(filters.chromosomeEnd)
+    ) {
+      setValidationError("Start position cannot be greater than end position.");
+      return;
+    }
+
+    setValidationError(null);
     onApply(filters);
     onClose();
   };
@@ -201,29 +226,56 @@ export function MutationFilterModal({
               />
             </Grid.Col>
             <Grid.Col span={6}>
-              <TextInput
-                label="Chromosome Start"
+              <NumberInput
+                label="Chromosome Range Start"
+                description="Start position of the range"
                 placeholder="Start Position"
                 value={filters.chromosomeStart}
-                onChange={(e) =>
-                  setFilters({ ...filters, chromosomeStart: e.target.value })
-                }
+                onChange={(val) => {
+                  setFilters({ ...filters, chromosomeStart: val.toString() });
+                  setValidationError(null);
+                }}
                 radius="md"
-                type="number"
+                allowDecimal={false}
+                allowNegative={false}
+                thousandSeparator=","
+                error={
+                  (validationError &&
+                    !filters.chromosomeStart &&
+                    filters.chromosomeEnd) ||
+                  (validationError?.includes("Start position") &&
+                    validationError)
+                }
               />
             </Grid.Col>
             <Grid.Col span={6}>
-              <TextInput
-                label="Chromosome End"
+              <NumberInput
+                label="Chromosome Range End"
+                description="End position of the range"
                 placeholder="End Position"
                 value={filters.chromosomeEnd}
-                onChange={(e) =>
-                  setFilters({ ...filters, chromosomeEnd: e.target.value })
-                }
+                onChange={(val) => {
+                  setFilters({ ...filters, chromosomeEnd: val.toString() });
+                  setValidationError(null);
+                }}
                 radius="md"
-                type="number"
+                allowDecimal={false}
+                allowNegative={false}
+                thousandSeparator=","
+                error={
+                  validationError &&
+                  filters.chromosomeStart &&
+                  !filters.chromosomeEnd
+                }
               />
             </Grid.Col>
+            {validationError && (
+              <Grid.Col span={12}>
+                <Text c="red" size="sm">
+                  {validationError}
+                </Text>
+              </Grid.Col>
+            )}
             <Grid.Col span={12}>
               <Select
                 label="Mutation Type"
