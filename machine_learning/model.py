@@ -97,6 +97,7 @@ def train_random_forest_optimised(data_path: str):
     # -----------------------------
     # 8️⃣ ROC–AUC curve (multiclass)
     # -----------------------------
+    class_names = le_label.inverse_transform(list(range(len(le_label.classes_))))
     n_classes = len(np.unique(y))
     y_test_bin = label_binarize(y_test, classes=list(range(n_classes)))
     y_score = rf.predict_proba(X_test_scaled)
@@ -116,8 +117,12 @@ def train_random_forest_optimised(data_path: str):
     roc_plot = plt.figure(figsize=(8, 6))
     colors = cycle(["red", "green", "blue", "orange", "purple"])
     for i, color in zip(range(min(n_classes, 5)), colors):
-        plt.plot(fpr[i], tpr[i], color=color, lw=1.5,
-                    label=f"Class {i} (AUC = {roc_auc[i]:.3f})")
+        class_name = class_names[i]
+        plt.plot(
+            fpr[i], tpr[i],
+            color=color, lw=1.5,
+            label=f"{class_name} (AUC = {roc_auc[i]:.3f})"
+        )
     plt.plot([0, 1], [0, 1], "k--", lw=1)
     plt.title(f"Multiclass ROC Curve (Macro AUC = {roc_auc_macro:.3f})")
     plt.xlabel("False Positive Rate")

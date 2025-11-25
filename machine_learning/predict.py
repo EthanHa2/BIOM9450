@@ -59,5 +59,3 @@ output = {
     "confidence_percent": round(confidence, 2) if confidence else None,
     "display_text": result_text
 }
-
-print(json.dumps(output))
