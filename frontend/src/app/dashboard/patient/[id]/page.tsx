@@ -35,6 +35,10 @@ import {
   AddPhenotypeModal,
   PhenotypeFormData,
 } from "@/components/AddPhenotypeModal";
+import {
+  AddMutationModal,
+  MutationFormData,
+} from "@/components/AddMutationModal";
 
 // --- Types ---
 
@@ -68,16 +72,16 @@ interface Phenotype {
 
 interface Mutation {
   mutation_id: number;
-  icgc_specimen_id?: string;
-  chromosome?: string;
-  chromosome_start?: number;
-  chromosome_end?: number;
-  mutation_type?: string;
-  mutated_from_allele?: string;
-  mutated_to_allele?: string;
-  consequence_type?: string;
-  gene_affected?: string;
-  cancer_type?: string;
+  icgc_specimen_id: string;
+  chromosome: string;
+  chromosome_start: number;
+  chromosome_end: number;
+  mutation_type: string;
+  mutated_from_allele: string;
+  mutated_to_allele: string;
+  consequence_type: string;
+  gene_affected: string;
+  cancer_type: string;
 }
 
 // --- Helper Components ---
@@ -129,14 +133,20 @@ export default function PatientDetailsPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [isEditingInfo, setIsEditingInfo] = useState(false);
+
+  // Modal States
   const [isAddDiagnosticOpen, setIsAddDiagnosticOpen] = useState(false);
   const [isAddPhenotypeOpen, setIsAddPhenotypeOpen] = useState(false);
+  const [isAddMutationOpen, setIsAddMutationOpen] = useState(false);
+
+  // Editing Item States
   const [editingDiagnostic, setEditingDiagnostic] = useState<Diagnostic | null>(
     null
   );
   const [editingPhenotype, setEditingPhenotype] = useState<Phenotype | null>(
     null
   );
+  const [editingMutation, setEditingMutation] = useState<Mutation | null>(null);
 
   // Confirmation Modal State
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
@@ -208,6 +218,7 @@ export default function PatientDetailsPage() {
   const handleSaveInfo = async () => {
     setBackupPatient(patient);
     setIsEditingInfo(false);
+    // Ideally, make a PUT request here to update patient info in backend
   };
 
   const handleCancelInfo = () => {
@@ -263,14 +274,9 @@ export default function PatientDetailsPage() {
     } else if (type === "phenotype" && "phenotype_id" in item) {
       setEditingPhenotype(item as Phenotype);
       setIsAddPhenotypeOpen(true);
-    } else {
-      const itemId =
-        "phenotype_id" in item
-          ? item.phenotype_id
-          : "mutation_id" in item
-          ? item.mutation_id
-          : 0;
-      alert(`Edit ${type} ID: ${itemId}. Implement Modal here.`);
+    } else if (type === "mutation" && "mutation_id" in item) {
+      setEditingMutation(item as Mutation);
+      setIsAddMutationOpen(true);
     }
   };
 
@@ -278,7 +284,6 @@ export default function PatientDetailsPage() {
     if (!patient || !user) return;
 
     try {
-      // Format date for API (YYYY-MM-DD)
       const dateObj =
         data.diagnosis_date instanceof Date
           ? data.diagnosis_date
@@ -286,7 +291,7 @@ export default function PatientDetailsPage() {
           ? new Date(data.diagnosis_date)
           : new Date();
 
-      const dateStr = dateObj.toLocaleDateString("en-CA"); // en-CA outputs YYYY-MM-DD
+      const dateStr = dateObj.toLocaleDateString("en-CA");
 
       const payload = {
         patient_id: patient.patient_id,
@@ -299,7 +304,6 @@ export default function PatientDetailsPage() {
 
       let res;
       if (editingDiagnostic) {
-        // Update existing
         res = await fetch(
           `${API_BASE_URL}/diagnostic/${editingDiagnostic.diagnosis_id}`,
           {
@@ -312,7 +316,6 @@ export default function PatientDetailsPage() {
           }
         );
       } else {
-        // Create new
         res = await fetch(`${API_BASE_URL}/diagnostic`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -320,28 +323,20 @@ export default function PatientDetailsPage() {
         });
       }
 
-      if (!res.ok) {
-        throw new Error("Failed to save diagnostic");
-      }
+      if (!res.ok) throw new Error("Failed to save diagnostic");
 
       const result = await res.json();
 
       if (editingDiagnostic) {
         const targetId = editingDiagnostic.diagnosis_id;
-        // Update in list
         setDiagnostics((prev) =>
           prev.map((d) =>
             d.diagnosis_id === targetId
-              ? {
-                  ...d,
-                  ...payload,
-                  diagnosis_id: targetId,
-                }
+              ? { ...d, ...payload, diagnosis_id: targetId }
               : d
           )
         );
       } else {
-        // Add to list
         const newDiagnostic: Diagnostic = {
           diagnosis_id: result.diagnostic_id || result.id,
           patient_id: patient.patient_id,
@@ -382,7 +377,6 @@ export default function PatientDetailsPage() {
 
       let res;
       if (editingPhenotype) {
-        // Update existing
         res = await fetch(
           `${API_BASE_URL}/phenotype/${editingPhenotype.phenotype_id}`,
           {
@@ -395,7 +389,6 @@ export default function PatientDetailsPage() {
           }
         );
       } else {
-        // Create new
         res = await fetch(`${API_BASE_URL}/phenotype`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -403,10 +396,7 @@ export default function PatientDetailsPage() {
         });
       }
 
-      if (!res.ok) {
-        throw new Error("Failed to save phenotype");
-      }
-
+      if (!res.ok) throw new Error("Failed to save phenotype");
       const result = await res.json();
 
       if (editingPhenotype) {
@@ -414,11 +404,7 @@ export default function PatientDetailsPage() {
         setPhenotypes((prev) =>
           prev.map((p) =>
             p.phenotype_id === targetId
-              ? {
-                  ...p,
-                  ...payload,
-                  phenotype_id: targetId,
-                }
+              ? { ...p, ...payload, phenotype_id: targetId }
               : p
           )
         );
@@ -439,11 +425,79 @@ export default function PatientDetailsPage() {
     }
   };
 
+  const handleSaveMutation = async (data: MutationFormData) => {
+    if (!patient) return;
+
+    try {
+      // Prepare payload - convert empty strings to null or keep as is depending on backend
+      const payload = {
+        ...data,
+        patient_id: patient.patient_id,
+        // Ensure numbers are numbers, strings are strings
+        chromosome_start: Number(data.chromosome_start) || 0,
+        chromosome_end: Number(data.chromosome_end) || 0,
+      };
+
+      let res;
+      if (editingMutation) {
+        // UPDATE
+        res = await fetch(
+          `${API_BASE_URL}/mutation/${editingMutation.mutation_id}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ...payload,
+              mutation_id: editingMutation.mutation_id,
+            }),
+          }
+        );
+      } else {
+        // CREATE
+        res = await fetch(`${API_BASE_URL}/mutation`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      if (!res.ok) throw new Error("Failed to save mutation");
+      const result = await res.json();
+
+      if (editingMutation) {
+        const targetId = editingMutation.mutation_id;
+        setMutations((prev) =>
+          prev.map((m) =>
+            m.mutation_id === targetId
+              ? ({ ...m, ...payload, mutation_id: targetId } as Mutation) // cast to Mutation because form data might be looser
+              : m
+          )
+        );
+      } else {
+        const newMutation: Mutation = {
+          ...payload,
+          mutation_id: result.mutation_id || result.id,
+          // Ensure types match Mutation interface
+          icgc_specimen_id: payload.icgc_specimen_id,
+          chromosome: payload.chromosome,
+          mutation_type: payload.mutation_type,
+        };
+        setMutations((prev) => [...prev, newMutation]);
+      }
+    } catch (error) {
+      console.error("Error saving mutation:", error);
+      alert("Failed to save mutation.");
+      throw error;
+    }
+  };
+
   const handleModalClose = () => {
     setIsAddDiagnosticOpen(false);
     setEditingDiagnostic(null);
     setIsAddPhenotypeOpen(false);
     setEditingPhenotype(null);
+    setIsAddMutationOpen(false);
+    setEditingMutation(null);
   };
 
   if (loading) {
@@ -746,6 +800,10 @@ export default function PatientDetailsPage() {
                 variant="light"
                 leftSection={<IconPlus size={16} />}
                 size="xs"
+                onClick={() => {
+                  setEditingMutation(null);
+                  setIsAddMutationOpen(true);
+                }}
               >
                 Add Mutation
               </Button>
@@ -835,6 +893,13 @@ export default function PatientDetailsPage() {
                             <Group gap="xs">
                               <ActionIcon
                                 variant="subtle"
+                                color="blue"
+                                onClick={() => handleEditRow("mutation", item)}
+                              >
+                                <IconEdit size={16} />
+                              </ActionIcon>
+                              <ActionIcon
+                                variant="subtle"
                                 color="red"
                                 onClick={() =>
                                   openDeleteModal("mutation", item.mutation_id)
@@ -892,6 +957,29 @@ export default function PatientDetailsPage() {
                   recorded_date: editingPhenotype.recorded_date
                     ? new Date(editingPhenotype.recorded_date)
                     : null,
+                }
+              : null
+          }
+        />
+
+        <AddMutationModal
+          opened={isAddMutationOpen}
+          onClose={handleModalClose}
+          onApply={handleSaveMutation}
+          initialData={
+            editingMutation
+              ? {
+                  icgc_specimen_id: editingMutation.icgc_specimen_id || "",
+                  chromosome: editingMutation.chromosome || "",
+                  chromosome_start: editingMutation.chromosome_start || "",
+                  chromosome_end: editingMutation.chromosome_end || "",
+                  mutation_type: editingMutation.mutation_type || "",
+                  mutated_from_allele:
+                    editingMutation.mutated_from_allele || "",
+                  mutated_to_allele: editingMutation.mutated_to_allele || "",
+                  consequence_type: editingMutation.consequence_type || "",
+                  gene_affected: editingMutation.gene_affected || "",
+                  cancer_type: editingMutation.cancer_type || "",
                 }
               : null
           }
