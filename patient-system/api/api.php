@@ -23,6 +23,7 @@ require_once __DIR__ . '/PatientController.php';
 require_once __DIR__ . '/MutationController.php';
 require_once __DIR__ . '/DiagnosticController.php';
 require_once __DIR__ . '/PhenotypeController.php';
+require_once __DIR__ . '/ClinicianController.php';
 
 
 // helper functions
@@ -47,7 +48,7 @@ $path = trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
 $parts = explode('/', $path);
 
 // Supported resources
-$validResources = ['patient', 'mutation', 'diagnostic', 'phenotype'];
+$validResources = ['patient', 'mutation', 'diagnostic', 'phenotype', 'clinician'];
 
 // Find the first part that matches a valid resource
 $resourceIndex = -1;
@@ -95,6 +96,11 @@ try {
         // phenotype API
         case 'phenotype':
             $controller = new PhenotypeController($pdo);
+            $controller->handle($id, $sub, $method);
+            break;
+        // ✅ clinician API
+        case 'clinician':
+            $controller = new ClinicianController($pdo);
             $controller->handle($id, $sub, $method);
             break;
         default:

@@ -1,9 +1,16 @@
 "use client";
 
-import { Button, Loader, TextInput, Divider } from "@mantine/core";
-import { useState } from "react";
+import {
+  Button,
+  Loader,
+  TextInput,
+  Divider,
+} from "@mantine/core";
+import { useState, useEffect } from "react";
+import { notifications } from "@mantine/notifications";
 
 import { DashboardNavBar } from "@/components/DashboardNavBar";
+import { useAuth } from "@/context/AuthContext";
 
 interface ClinicianProfile {
   first_name: string;
@@ -20,13 +27,7 @@ interface InfoRowProps {
   onChange: (value: string) => void;
 }
 
-const initialProfile: ClinicianProfile = {
-  first_name: "John",
-  last_name: "Smith",
-  email: "john.smith@example.com",
-  phone: "0412356789",
-  specialty: "Cardiologist",
-};
+const API_BASE = "/api";
 
 function InfoRow({ label, value, isEditing, onChange }: InfoRowProps) {
   return (
@@ -37,7 +38,7 @@ function InfoRow({ label, value, isEditing, onChange }: InfoRowProps) {
           value={value}
           onChange={(e) => onChange(e.target.value)}
           readOnly={!isEditing}
-          className="max-w-xl "
+          className="max-w-xl"
           styles={{
             input: {
               backgroundColor: isEditing ? "white" : "#f8f9fa",
@@ -52,27 +53,129 @@ function InfoRow({ label, value, isEditing, onChange }: InfoRowProps) {
 }
 
 export default function ProfilePage() {
-  const [loading, setLoading] = useState(false);
+  const { user } = useAuth(); // { clinician_id, email, name }
+  const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const [profile, setProfile] = useState(initialProfile);
-  const [backupProfile, setBackupProfile] = useState(initialProfile);
+  const [profile, setProfile] = useState<ClinicianProfile>({
+    first_name: "",
+    last_name: "",
+    email: "",
+    phone: "",
+    specialty: "",
+  });
+  const [backupProfile, setBackupProfile] = useState<ClinicianProfile | null>(
+    null
+  );
 
   const updateField = (field: keyof ClinicianProfile) => (value: string) => {
     setProfile((prev) => ({ ...prev, [field]: value }));
   };
+
+  // Load clinician profile from backend
+  const fetchProfile = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await fetch(
+        `${API_BASE}/clinician/${user.clinician_id}`,
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      );
+
+      const raw = await res.text();
+      const json = JSON.parse(raw);
+
+      if (!json.success) {
+        throw new Error(json.message || "Failed to load profile.");
+      }
+
+      const data = json.data as ClinicianProfile;
+      setProfile({
+        first_name: data.first_name ?? "",
+        last_name: data.last_name ?? "",
+        email: data.email ?? "",
+        phone: data.phone ?? "",
+        specialty: data.specialty ?? "",
+      });
+      setBackupProfile(data);
+    } catch (err) {
+      console.error("Error fetching clinician profile:", err);
+      notifications.show({
+        title: "Error",
+        message: "Failed to load clinician profile.",
+        color: "red",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleEdit = () => {
     setBackupProfile(profile);
     setIsEditing(true);
   };
 
-  const handleSave = () => {
-    // API call to save changes would go here
-    setIsEditing(false);
+  const handleSave = async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+
+      const res = await fetch(
+        `${API_BASE}/clinician/${user.clinician_id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify(profile),
+        }
+      );
+
+      const raw = await res.text();
+      const json = JSON.parse(raw);
+
+      if (!json.success) {
+        throw new Error(json.message || "Failed to update profile.");
+      }
+
+      notifications.show({
+        title: "Profile Updated",
+        message: "Your profile details have been saved successfully.",
+        color: "green",
+      });
+
+      setBackupProfile(profile);
+      setIsEditing(false);
+    } catch (err) {
+      console.error("Error updating profile:", err);
+      notifications.show({
+        title: "Update Failed",
+        message:
+          err instanceof Error ? err.message : "Could not save profile.",
+        color: "red",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCancel = () => {
-    setProfile(backupProfile);
+    if (backupProfile) {
+      setProfile(backupProfile);
+    }
     setIsEditing(false);
   };
 
@@ -92,7 +195,7 @@ export default function ProfilePage() {
           </div>
         ) : (
           <section>
-            <h2 className="text-3xl font-bold mb-4"> Personal Information </h2>
+            <h2 className="text-3xl font-bold mb-4">Personal Information</h2>
             <Divider className="my-4" />
             <div className="bg-slate-50 p-6 rounded-xl border border-transparent shadow-md relative">
               <div className="space-y-2">
