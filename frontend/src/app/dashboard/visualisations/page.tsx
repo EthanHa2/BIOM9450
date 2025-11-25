@@ -9,7 +9,7 @@ export default function VisualisationsPage() {
   const [loading, setLoading] = useState(false);
 
   return (
-    <div className="min-h-screen flex">
+    <div className="h-screen flex overflow-hidden">
       <DashboardNavBar />
       <main className="flex-1 flex flex-col px-40 py-25 overflow-y-auto">
         {/* Header Title */}

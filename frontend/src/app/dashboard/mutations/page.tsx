@@ -1,16 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Button,
-  Loader,
-  Table,
-  Menu,
-  ActionIcon,
-  Tabs, // ⬅️ NEW
-} from "@mantine/core";
+import { Button, Loader, Table, Tabs } from "@mantine/core";
 import { DashboardNavBar } from "@/components/DashboardNavBar";
-import { IconChevronDown } from "@tabler/icons-react";
+import { IconSearch } from "@tabler/icons-react";
+import {
+  MutationFilterModal,
+  MutationFilterValues,
+} from "@/components/MutationFilterModal";
 import {
   BarChart,
   Bar,
@@ -20,6 +17,8 @@ import {
   CartesianGrid,
   ResponsiveContainer,
 } from "recharts";
+
+import { formatString } from "@/utils/stringUtils";
 
 interface GeneHotspot {
   gene_affected: string;
@@ -47,49 +46,34 @@ interface ChromosomeDistribution {
 
 const PAGE_SIZE = 10;
 
-type CancerFilter =
-  | "all"
-  | "blood"
-  | "brain"
-  | "breast"
-  | "prostate"
-  | "pancreas"
-  | "liver";
-
-type AlleleFilter = "all" | "A" | "T" | "C" | "G";
-
-type MutationTypeFilter =
-  | "all"
-  | "single base substitution"
-  | "insertion of <=200bp"
-  | "deletion of <= 200bp";
-
-type ChromosomeFilter =
-  | "all"
-  | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10"
-  | "11" | "12" | "13" | "14" | "15" | "16" | "17" | "18" | "19" | "20"
-  | "21" | "22"
-  | "X"
-  | "Y";
-
 export default function MutationsPage() {
   const [loading, setLoading] = useState(false);
   const [mutations, setMutations] = useState<MutationRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const [cancerFilter, setCancerFilter] = useState<CancerFilter>("all");
-  const [chrFilter, setChrFilter] = useState<ChromosomeFilter>("all");
-  const [fromFilter, setFromFilter] = useState<AlleleFilter>("all");
-  const [toFilter, setToFilter] = useState<AlleleFilter>("all");
-  const [mutationTypeFilter, setMutationTypeFilter] =
-    useState<MutationTypeFilter>("all");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filters, setFilters] = useState<MutationFilterValues>({
+    icgcSpecimenId: "",
+    mutationId: "",
+    geneAffected: "",
+    cancerType: null,
+    chromosome: null,
+    chromosomeStart: "",
+    chromosomeEnd: "",
+    mutationType: null,
+    mutatedFrom: null,
+    mutatedTo: null,
+    consequenceType: "",
+  });
 
   const [geneHotspots, setGeneHotspots] = useState<GeneHotspot[]>([]);
   const [loadingHotspots, setLoadingHotspots] = useState(false);
   const [hotspotError, setHotspotError] = useState<string | null>(null);
 
-  const [chromosomeDist, setChromosomeDist] = useState<ChromosomeDistribution[]>([]);
+  const [chromosomeDist, setChromosomeDist] = useState<
+    ChromosomeDistribution[]
+  >([]);
   const [loadingChromDist, setLoadingChromDist] = useState(false);
   const [chromDistError, setChromDistError] = useState<string | null>(null);
 
@@ -97,13 +81,10 @@ export default function MutationsPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(
-        "http://localhost/BIOM9450_MajorProject/BIOM9450/patient-system/mutation_dataset_visual.php",
-        {
-          method: "GET",
-          credentials: "include",
-        }
-      );
+      const res = await fetch("/api/mutation_dataset_visual", {
+        method: "GET",
+        credentials: "include",
+      });
 
       const raw = await res.text();
       const json = JSON.parse(raw);
@@ -127,13 +108,10 @@ export default function MutationsPage() {
     setLoadingHotspots(true);
     setHotspotError(null);
     try {
-      const res = await fetch(
-        "http://localhost/BIOM9450_MajorProject/BIOM9450/patient-system/mutation_gene_frequency.php",
-        {
-          method: "GET",
-          credentials: "include",
-        }
-      );
+      const res = await fetch("/api/mutation_gene_frequency", {
+        method: "GET",
+        credentials: "include",
+      });
       const raw = await res.text();
       const json = JSON.parse(raw);
 
@@ -155,19 +133,18 @@ export default function MutationsPage() {
     setLoadingChromDist(true);
     setChromDistError(null);
     try {
-      const res = await fetch(
-        "http://localhost/BIOM9450_MajorProject/BIOM9450/patient-system/mutation_chromosome_distribution.php",
-        {
-          method: "GET",
-          credentials: "include",
-        }
-      );
+      const res = await fetch("/api/mutation_chromosome_distribution", {
+        method: "GET",
+        credentials: "include",
+      });
 
       const raw = await res.text();
       const json = JSON.parse(raw);
 
       if (!json.success) {
-        throw new Error(json.message || "Failed to load chromosome distribution.");
+        throw new Error(
+          json.message || "Failed to load chromosome distribution."
+        );
       }
 
       setChromosomeDist(json.data);
@@ -182,9 +159,30 @@ export default function MutationsPage() {
 
   // Desired chromosome order: 1–22, X, Y
   const chromosomeOrder = [
-    "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
-    "11", "12", "13", "14", "15", "16", "17", "18", "19", "20",
-    "21", "22", "X", "Y",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15",
+    "16",
+    "17",
+    "18",
+    "19",
+    "20",
+    "21",
+    "22",
+    "X",
+    "Y",
   ];
 
   const sortedChromosomeDist = [...chromosomeDist].sort((a, b) => {
@@ -206,36 +204,79 @@ export default function MutationsPage() {
 
   // Apply filters
   const filteredMutations = mutations.filter((m) => {
-    if (cancerFilter !== "all" && m.cancer_type.toLowerCase() !== cancerFilter) {
+    if (
+      filters.cancerType &&
+      m.cancer_type.toLowerCase() !== filters.cancerType
+    ) {
       return false;
     }
 
-    if (chrFilter !== "all" && m.chromosome !== chrFilter) {
+    if (filters.chromosome && m.chromosome !== filters.chromosome) {
       return false;
     }
 
     if (
-      fromFilter !== "all" &&
-      m.mutated_from_allele.toUpperCase() !== fromFilter
+      filters.chromosomeStart &&
+      m.chromosome_start < Number(filters.chromosomeStart)
     ) {
       return false;
     }
 
     if (
-      toFilter !== "all" &&
-      m.mutated_to_allele.toUpperCase() !== toFilter
+      filters.chromosomeEnd &&
+      m.chromosome_end > Number(filters.chromosomeEnd)
     ) {
       return false;
     }
 
     if (
-      mutationTypeFilter !== "all" &&
-      m.mutation_type !== mutationTypeFilter
+      filters.mutatedFrom &&
+      m.mutated_from_allele.toUpperCase() !== filters.mutatedFrom
     ) {
       return false;
     }
 
+    if (
+      filters.mutatedTo &&
+      m.mutated_to_allele.toUpperCase() !== filters.mutatedTo
+    ) {
+      return false;
+    }
 
+    if (filters.mutationType && m.mutation_type !== filters.mutationType) {
+      return false;
+    }
+
+    if (
+      filters.icgcSpecimenId &&
+      !m.icgc_specimen_id
+        .toLowerCase()
+        .includes(filters.icgcSpecimenId.toLowerCase())
+    ) {
+      return false;
+    }
+
+    if (filters.mutationId && m.mutation_id.toString() !== filters.mutationId) {
+      return false;
+    }
+
+    if (
+      filters.geneAffected &&
+      !m.gene_affected
+        .toLowerCase()
+        .includes(filters.geneAffected.toLowerCase())
+    ) {
+      return false;
+    }
+
+    if (
+      filters.consequenceType &&
+      !m.consequence_type
+        .toLowerCase()
+        .includes(filters.consequenceType.toLowerCase())
+    ) {
+      return false;
+    }
 
     return true;
   });
@@ -278,23 +319,13 @@ export default function MutationsPage() {
     pageRows.length > 0
       ? pageRows.map((m) => (
           <Table.Tr key={m.mutation_id}>
-            <Table.Td className="text-slate-800">
-              {m.icgc_specimen_id}
-            </Table.Td>
-            <Table.Td className="text-slate-800">
-              {m.mutation_id}
-            </Table.Td>
+            <Table.Td className="text-slate-800">{m.icgc_specimen_id}</Table.Td>
+            <Table.Td className="text-slate-800">{m.mutation_id}</Table.Td>
+            <Table.Td className="text-slate-700">{m.chromosome}</Table.Td>
+            <Table.Td className="text-slate-700">{m.chromosome_start}</Table.Td>
+            <Table.Td className="text-slate-700">{m.chromosome_end}</Table.Td>
             <Table.Td className="text-slate-700">
-              {m.chromosome}
-            </Table.Td>
-            <Table.Td className="text-slate-700">
-              {m.chromosome_start}
-            </Table.Td>
-            <Table.Td className="text-slate-700">
-              {m.chromosome_end}
-            </Table.Td>
-            <Table.Td className="text-slate-700">
-              {m.mutation_type}
+              {formatString(m.mutation_type)}
             </Table.Td>
             <Table.Td className="text-slate-700">
               {m.mutated_from_allele}
@@ -303,13 +334,11 @@ export default function MutationsPage() {
               {m.mutated_to_allele}
             </Table.Td>
             <Table.Td className="text-slate-700">
-              {m.consequence_type}
+              {formatString(m.consequence_type)}
             </Table.Td>
+            <Table.Td className="text-slate-700">{m.gene_affected}</Table.Td>
             <Table.Td className="text-slate-700">
-              {m.gene_affected}
-            </Table.Td>
-            <Table.Td className="text-slate-700">
-              {m.cancer_type}
+              {formatString(m.cancer_type)}
             </Table.Td>
           </Table.Tr>
         ))
@@ -319,14 +348,14 @@ export default function MutationsPage() {
               colSpan={11}
               className="text-center text-sm text-slate-500 py-6"
             >
-              No mutations match the current filters. Adjust the filters
-              above to see results.
+              No mutations match the current filters. Adjust the filters above
+              to see results.
             </Table.Td>
           </Table.Tr>,
         ];
 
   return (
-    <div className="min-h-screen flex">
+    <div className="h-screen flex overflow-hidden">
       <DashboardNavBar />
       <main className="flex-1 flex flex-col px-40 py-25 overflow-y-auto bg-slate-50">
         {/* Header Title */}
@@ -351,7 +380,13 @@ export default function MutationsPage() {
 
         {/* Controls Row */}
         <div className="flex justify-between items-center mb-8">
-          <Button variant="filled" size="md" radius="md">
+          <Button
+            variant="filled"
+            size="md"
+            radius="md"
+            onClick={() => setIsFilterOpen(true)}
+            leftSection={<IconSearch size={16} />}
+          >
             Search &amp; Filter
           </Button>
 
@@ -390,18 +425,15 @@ export default function MutationsPage() {
                   </h2>
                   <span className="text-sm text-slate-500">
                     {totalRows > 0
-                      ? `Showing ${startIndex + 1}–${endIndex} of ${totalRows} records`
+                      ? `Showing ${
+                          startIndex + 1
+                        }–${endIndex} of ${totalRows} records`
                       : "0 records match current filters"}
                   </span>
                 </div>
 
                 <div className="overflow-x-auto">
-                  <Table
-                    striped
-                    highlightOnHover
-                    withColumnBorders
-                    className="min-w-full"
-                  >
+                  <Table striped highlightOnHover className="min-w-full">
                     <Table.Thead>
                       <Table.Tr className="bg-slate-100">
                         <Table.Th className="text-slate-700 text-sm font-semibold">
@@ -415,64 +447,6 @@ export default function MutationsPage() {
                         <Table.Th className="text-slate-700 text-sm font-semibold">
                           <div className="flex items-center gap-1">
                             <span>Chromosome</span>
-                            <Menu
-                              withinPortal
-                              position="bottom-end"
-                              shadow="md"
-                            >
-                              <Menu.Target>
-                                <ActionIcon
-                                  variant="subtle"
-                                  aria-label="Filter by chromosome"
-                                  size="sm"
-                                >
-                                  <IconChevronDown size={16} />
-                                </ActionIcon>
-                              </Menu.Target>
-                              <Menu.Dropdown
-                                style={{ maxHeight: 250, overflowY: "auto" }}
-                              >
-                                <Menu.Label>Filter by chromosome</Menu.Label>
-                                <Menu.Item
-                                  onClick={() => {
-                                    setChrFilter("all");
-                                    setCurrentPage(1);
-                                  }}
-                                >
-                                  All
-                                </Menu.Item>
-                                {[...Array(22)].map((_, i) => {
-                                  const chr = String(i + 1) as ChromosomeFilter;
-                                  return (
-                                    <Menu.Item
-                                      key={chr}
-                                      onClick={() => {
-                                        setChrFilter(chr);
-                                        setCurrentPage(1);
-                                      }}
-                                    >
-                                      {chr}
-                                    </Menu.Item>
-                                  );
-                                })}
-                                <Menu.Item
-                                  onClick={() => {
-                                    setChrFilter("X");
-                                    setCurrentPage(1);
-                                  }}
-                                >
-                                  X
-                                </Menu.Item>
-                                <Menu.Item
-                                  onClick={() => {
-                                    setChrFilter("Y");
-                                    setCurrentPage(1);
-                                  }}
-                                >
-                                  Y
-                                </Menu.Item>
-                              </Menu.Dropdown>
-                            </Menu>
                           </div>
                         </Table.Th>
 
@@ -487,62 +461,6 @@ export default function MutationsPage() {
                         <Table.Th className="text-slate-700 text-sm font-semibold">
                           <div className="flex items-center gap-1">
                             <span>Mutation Type</span>
-                            <Menu
-                              withinPortal
-                              position="bottom-end"
-                              shadow="md"
-                            >
-                              <Menu.Target>
-                                <ActionIcon
-                                  variant="subtle"
-                                  aria-label="Filter by mutation type"
-                                  size="sm"
-                                >
-                                  <IconChevronDown size={16} />
-                                </ActionIcon>
-                              </Menu.Target>
-                              <Menu.Dropdown>
-                                <Menu.Label>Filter by mutation type</Menu.Label>
-                                <Menu.Item
-                                  onClick={() => {
-                                    setMutationTypeFilter("all");
-                                    setCurrentPage(1);
-                                  }}
-                                >
-                                  All
-                                </Menu.Item>
-                                <Menu.Item
-                                  onClick={() => {
-                                    setMutationTypeFilter(
-                                      "single base substitution"
-                                    );
-                                    setCurrentPage(1);
-                                  }}
-                                >
-                                  single base substitution
-                                </Menu.Item>
-                                <Menu.Item
-                                  onClick={() => {
-                                    setMutationTypeFilter(
-                                      "insertion of <=200bp"
-                                    );
-                                    setCurrentPage(1);
-                                  }}
-                                >
-                                  insertion of &lt;=200bp
-                                </Menu.Item>
-                                <Menu.Item
-                                  onClick={() => {
-                                    setMutationTypeFilter(
-                                      "deletion of <= 200bp"
-                                    );
-                                    setCurrentPage(1);
-                                  }}
-                                >
-                                  deletion of &lt;= 200bp
-                                </Menu.Item>
-                              </Menu.Dropdown>
-                            </Menu>
                           </div>
                         </Table.Th>
 
@@ -550,43 +468,6 @@ export default function MutationsPage() {
                         <Table.Th className="text-slate-700 text-sm font-semibold">
                           <div className="flex items-center gap-1">
                             <span>From</span>
-                            <Menu
-                              withinPortal
-                              position="bottom-end"
-                              shadow="md"
-                            >
-                              <Menu.Target>
-                                <ActionIcon
-                                  variant="subtle"
-                                  aria-label="Filter by from allele"
-                                  size="sm"
-                                >
-                                  <IconChevronDown size={16} />
-                                </ActionIcon>
-                              </Menu.Target>
-                              <Menu.Dropdown>
-                                <Menu.Label>Mutated from allele</Menu.Label>
-                                <Menu.Item
-                                  onClick={() => {
-                                    setFromFilter("all");
-                                    setCurrentPage(1);
-                                  }}
-                                >
-                                  All
-                                </Menu.Item>
-                                {["A", "T", "C", "G"].map((allele) => (
-                                  <Menu.Item
-                                    key={allele}
-                                    onClick={() => {
-                                      setFromFilter(allele as AlleleFilter);
-                                      setCurrentPage(1);
-                                    }}
-                                  >
-                                    {allele}
-                                  </Menu.Item>
-                                ))}
-                              </Menu.Dropdown>
-                            </Menu>
                           </div>
                         </Table.Th>
 
@@ -594,43 +475,6 @@ export default function MutationsPage() {
                         <Table.Th className="text-slate-700 text-sm font-semibold">
                           <div className="flex items-center gap-1">
                             <span>To</span>
-                            <Menu
-                              withinPortal
-                              position="bottom-end"
-                              shadow="md"
-                            >
-                              <Menu.Target>
-                                <ActionIcon
-                                  variant="subtle"
-                                  aria-label="Filter by to allele"
-                                  size="sm"
-                                >
-                                  <IconChevronDown size={16} />
-                                </ActionIcon>
-                              </Menu.Target>
-                              <Menu.Dropdown>
-                                <Menu.Label>Mutated to allele</Menu.Label>
-                                <Menu.Item
-                                  onClick={() => {
-                                    setToFilter("all");
-                                    setCurrentPage(1);
-                                  }}
-                                >
-                                  All
-                                </Menu.Item>
-                                {["A", "T", "C", "G"].map((allele) => (
-                                  <Menu.Item
-                                    key={allele}
-                                    onClick={() => {
-                                      setToFilter(allele as AlleleFilter);
-                                      setCurrentPage(1);
-                                    }}
-                                  >
-                                    {allele}
-                                  </Menu.Item>
-                                ))}
-                              </Menu.Dropdown>
-                            </Menu>
                           </div>
                         </Table.Th>
 
@@ -645,50 +489,6 @@ export default function MutationsPage() {
                         <Table.Th className="text-slate-700 text-sm font-semibold">
                           <div className="flex items-center gap-1">
                             <span>Cancer Type</span>
-                            <Menu
-                              withinPortal
-                              position="bottom-end"
-                              shadow="md"
-                            >
-                              <Menu.Target>
-                                <ActionIcon
-                                  variant="subtle"
-                                  aria-label="Filter by cancer type"
-                                  size="sm"
-                                >
-                                  <IconChevronDown size={16} />
-                                </ActionIcon>
-                              </Menu.Target>
-                              <Menu.Dropdown>
-                                <Menu.Label>Filter by cancer type</Menu.Label>
-                                <Menu.Item
-                                  onClick={() => {
-                                    setCancerFilter("all");
-                                    setCurrentPage(1);
-                                  }}
-                                >
-                                  All
-                                </Menu.Item>
-                                {[
-                                  "blood",
-                                  "brain",
-                                  "breast",
-                                  "prostate",
-                                  "pancreas",
-                                  "liver",
-                                ].map((ct) => (
-                                  <Menu.Item
-                                    key={ct}
-                                    onClick={() => {
-                                      setCancerFilter(ct as CancerFilter);
-                                      setCurrentPage(1);
-                                    }}
-                                  >
-                                    {ct.charAt(0).toUpperCase() + ct.slice(1)}
-                                  </Menu.Item>
-                                ))}
-                              </Menu.Dropdown>
-                            </Menu>
                           </div>
                         </Table.Th>
                       </Table.Tr>
@@ -730,9 +530,7 @@ export default function MutationsPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={
-                        clampedPage === totalPages || totalRows === 0
-                      }
+                      disabled={clampedPage === totalPages || totalRows === 0}
                       onClick={handleNext}
                     >
                       Next
@@ -757,11 +555,7 @@ export default function MutationsPage() {
                     dataset.
                   </p>
                 </div>
-                <Button
-                  variant="subtle"
-                  size="sm"
-                  onClick={fetchGeneHotspots}
-                >
+                <Button variant="subtle" size="sm" onClick={fetchGeneHotspots}>
                   Refresh hotspots
                 </Button>
               </div>
@@ -879,6 +673,15 @@ export default function MutationsPage() {
           </Tabs.Panel>
         </Tabs>
       </main>
+
+      <MutationFilterModal
+        opened={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        onApply={(newFilters) => {
+          setFilters(newFilters);
+          setCurrentPage(1);
+        }}
+      />
     </div>
   );
 }

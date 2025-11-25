@@ -77,7 +77,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="h-screen flex overflow-hidden">
       <DashboardNavBar />
       <main className="flex-1 flex flex-col px-40 py-25 overflow-y-auto">
         {/* Header Title */}
@@ -94,7 +94,7 @@ export default function ProfilePage() {
           <section>
             <h2 className="text-3xl font-bold mb-4"> Personal Information </h2>
             <Divider className="my-4" />
-            <div className="bg-gray-50 p-6 rounded-xl border border-transparent shadow-md relative">
+            <div className="bg-slate-50 p-6 rounded-xl border border-transparent shadow-md relative">
               <div className="space-y-2">
                 <InfoRow
                   label="First Name"

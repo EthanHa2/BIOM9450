@@ -53,7 +53,7 @@ function PatientCard({ patient }: { patient: Patient }) {
     : "N/A";
 
   return (
-    <div className="bg-gray-50 p-6 rounded-xl border border-transparent shadow-md hover:border-gray-200 hover:shadow-lg transition-all duration-200">
+    <div className="bg-slate-50 p-6 rounded-xl border border-transparent shadow-md hover:border-gray-200 hover:shadow-lg transition-all duration-200">
       <div className="flex justify-between items-start mb-4">
         <div className="flex items-baseline gap-2">
           <h3 className="text-2xl font-bold text-gray-900">{fullName}</h3>
@@ -286,9 +286,9 @@ export default function DashboardPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen flex">
+      <div className="h-screen flex overflow-hidden">
         <DashboardNavBar />
-        <main className="flex-1 flex flex-col px-30 py-25 overflow-y-auto">
+        <main className="flex-1 flex flex-col px-40 py-25 overflow-y-auto">
           {/* Header Title */}
           <div className="mb-8">
             <h1 className="text-4xl font-bold ">Patients Overview</h1>

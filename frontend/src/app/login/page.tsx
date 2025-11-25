@@ -33,7 +33,7 @@ export default function LoginPage() {
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const response = await fetch("http://localhost/BIOM9450_MajorProject/BIOM9450/patient-system/login.php", {
+      const response = await fetch("/api/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
