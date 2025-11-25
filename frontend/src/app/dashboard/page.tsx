@@ -53,7 +53,7 @@ function PatientCard({ patient }: { patient: Patient }) {
     : "N/A";
 
   return (
-    <div className="bg-gray-50 p-6 rounded-xl border border-transparent shadow-md hover:border-gray-200 hover:shadow-lg transition-all duration-200">
+    <div className="bg-slate-50 p-6 rounded-xl border border-transparent shadow-md hover:border-gray-200 hover:shadow-lg transition-all duration-200">
       <div className="flex justify-between items-start mb-4">
         <div className="flex items-baseline gap-2">
           <h3 className="text-2xl font-bold text-gray-900">{fullName}</h3>

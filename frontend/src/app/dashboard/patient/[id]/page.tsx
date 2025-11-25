@@ -31,6 +31,10 @@ import {
   AddDiagnosticModal,
   DiagnosticFormData,
 } from "@/components/AddDiagnosticModal";
+import {
+  AddPhenotypeModal,
+  PhenotypeFormData,
+} from "@/components/AddPhenotypeModal";
 
 // --- Types ---
 
@@ -126,7 +130,11 @@ export default function PatientDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [isAddDiagnosticOpen, setIsAddDiagnosticOpen] = useState(false);
+  const [isAddPhenotypeOpen, setIsAddPhenotypeOpen] = useState(false);
   const [editingDiagnostic, setEditingDiagnostic] = useState<Diagnostic | null>(
+    null
+  );
+  const [editingPhenotype, setEditingPhenotype] = useState<Phenotype | null>(
     null
   );
 
@@ -252,6 +260,9 @@ export default function PatientDetailsPage() {
     if (type === "diagnostic" && "diagnosis_id" in item) {
       setEditingDiagnostic(item as Diagnostic);
       setIsAddDiagnosticOpen(true);
+    } else if (type === "phenotype" && "phenotype_id" in item) {
+      setEditingPhenotype(item as Phenotype);
+      setIsAddPhenotypeOpen(true);
     } else {
       const itemId =
         "phenotype_id" in item
@@ -349,9 +360,90 @@ export default function PatientDetailsPage() {
     }
   };
 
+  const handleSavePhenotype = async (data: PhenotypeFormData) => {
+    if (!patient || !user) return;
+
+    try {
+      const dateObj =
+        data.recorded_date instanceof Date
+          ? data.recorded_date
+          : typeof data.recorded_date === "string"
+          ? new Date(data.recorded_date)
+          : new Date();
+
+      const dateStr = dateObj.toLocaleDateString("en-CA");
+
+      const payload = {
+        patient_id: patient.patient_id,
+        clinician_id: user.clinician_id,
+        description: data.description,
+        recorded_date: dateStr,
+      };
+
+      let res;
+      if (editingPhenotype) {
+        // Update existing
+        res = await fetch(
+          `${API_BASE_URL}/phenotype/${editingPhenotype.phenotype_id}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ...payload,
+              phenotype_id: editingPhenotype.phenotype_id,
+            }),
+          }
+        );
+      } else {
+        // Create new
+        res = await fetch(`${API_BASE_URL}/phenotype`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      if (!res.ok) {
+        throw new Error("Failed to save phenotype");
+      }
+
+      const result = await res.json();
+
+      if (editingPhenotype) {
+        const targetId = editingPhenotype.phenotype_id;
+        setPhenotypes((prev) =>
+          prev.map((p) =>
+            p.phenotype_id === targetId
+              ? {
+                  ...p,
+                  ...payload,
+                  phenotype_id: targetId,
+                }
+              : p
+          )
+        );
+      } else {
+        const newPhenotype: Phenotype = {
+          phenotype_id: result.phenotype_id || result.id,
+          patient_id: patient.patient_id,
+          clinician_id: user.clinician_id,
+          description: data.description,
+          recorded_date: dateStr,
+        };
+        setPhenotypes((prev) => [...prev, newPhenotype]);
+      }
+    } catch (error) {
+      console.error("Error saving phenotype:", error);
+      alert("Failed to save phenotype.");
+      throw error;
+    }
+  };
+
   const handleModalClose = () => {
     setIsAddDiagnosticOpen(false);
     setEditingDiagnostic(null);
+    setIsAddPhenotypeOpen(false);
+    setEditingPhenotype(null);
   };
 
   if (loading) {
@@ -374,7 +466,7 @@ export default function PatientDetailsPage() {
     <ProtectedRoute>
       <div className="h-screen flex overflow-hidden">
         <DashboardNavBar />
-        <main className="flex-1 flex flex-col px-40 py-25 overflow-y-auto pb-32">
+        <main className="flex-1 flex flex-col px-30 py-25 overflow-y-auto pb-32">
           {/* Header */}
           <div className="flex justify-between items-center mb-8">
             <Title order={1}>Patients Details</Title>
@@ -389,7 +481,7 @@ export default function PatientDetailsPage() {
               Patient Information
             </Title>
             <Divider className="my-4" />
-            <div className="bg-gray-50 p-6 rounded-xl border border-transparent shadow-md relative">
+            <div className="bg-slate-50 p-6 rounded-xl border border-transparent shadow-md relative">
               <div className="space-y-2">
                 <InfoRow
                   label="Patient ID"
@@ -469,35 +561,53 @@ export default function PatientDetailsPage() {
               </Button>
             </div>
             <Divider className="mb-4" />
-            <div className="bg-gray-50 p-4 rounded-xl border border-transparent shadow-sm">
+            <div className="bg-slate-50 p-4 rounded-xl border border-transparent shadow-sm">
               <Table highlightOnHover verticalSpacing="sm">
                 <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>ID</Table.Th>
-                    <Table.Th>Date</Table.Th>
-                    <Table.Th>Type</Table.Th>
-                    <Table.Th>Treatment</Table.Th>
-                    <Table.Th>Details</Table.Th>
-                    <Table.Th>Actions</Table.Th>
+                  <Table.Tr className="bg-slate-100">
+                    <Table.Th className="text-slate-700 text-sm font-semibold">
+                      ID
+                    </Table.Th>
+                    <Table.Th className="text-slate-700 text-sm font-semibold">
+                      Date
+                    </Table.Th>
+                    <Table.Th className="text-slate-700 text-sm font-semibold">
+                      Type
+                    </Table.Th>
+                    <Table.Th className="text-slate-700 text-sm font-semibold">
+                      Treatment
+                    </Table.Th>
+                    <Table.Th className="text-slate-700 text-sm font-semibold">
+                      Details
+                    </Table.Th>
+                    <Table.Th className="text-slate-700 text-sm font-semibold">
+                      Actions
+                    </Table.Th>
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
                   {diagnostics.length > 0 ? (
                     diagnostics.map((item) => (
                       <Table.Tr key={item.diagnosis_id}>
-                        <Table.Td>{item.diagnosis_id}</Table.Td>
-                        <Table.Td>
+                        <Table.Td className="text-slate-800">
+                          {item.diagnosis_id}
+                        </Table.Td>
+                        <Table.Td className="text-slate-800">
                           {item.diagnosis_date
                             ? new Date(item.diagnosis_date).toLocaleDateString(
                                 "en-AU"
                               )
                             : "N/A"}
                         </Table.Td>
-                        <Table.Td className="font-medium">
+                        <Table.Td className="text-slate-800 font-medium">
                           {formatString(item.diagnosis_type)}
                         </Table.Td>
-                        <Table.Td>{item.treatment || "-"}</Table.Td>
-                        <Table.Td>{item.description}</Table.Td>
+                        <Table.Td className="text-slate-700">
+                          {item.treatment || "-"}
+                        </Table.Td>
+                        <Table.Td className="text-slate-700">
+                          {item.description}
+                        </Table.Td>
                         <Table.Td>
                           <Group gap="xs">
                             <ActionIcon
@@ -545,36 +655,59 @@ export default function PatientDetailsPage() {
                 variant="light"
                 leftSection={<IconPlus size={16} />}
                 size="xs"
+                onClick={() => {
+                  setEditingPhenotype(null);
+                  setIsAddPhenotypeOpen(true);
+                }}
               >
                 Add Phenotype
               </Button>
             </div>
             <Divider className="mb-4" />
-            <div className="bg-gray-50 p-4 rounded-xl border border-transparent shadow-sm">
+            <div className="bg-slate-50 p-4 rounded-xl border border-transparent shadow-sm">
               <Table highlightOnHover verticalSpacing="sm">
                 <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>ID</Table.Th>
-                    <Table.Th>Date</Table.Th>
-                    <Table.Th>Description</Table.Th>
-                    <Table.Th>Actions</Table.Th>
+                  <Table.Tr className="bg-slate-100">
+                    <Table.Th className="text-slate-700 text-sm font-semibold">
+                      ID
+                    </Table.Th>
+                    <Table.Th className="text-slate-700 text-sm font-semibold">
+                      Date
+                    </Table.Th>
+                    <Table.Th className="text-slate-700 text-sm font-semibold">
+                      Description
+                    </Table.Th>
+                    <Table.Th className="text-slate-700 text-sm font-semibold">
+                      Actions
+                    </Table.Th>
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
                   {phenotypes.length > 0 ? (
                     phenotypes.map((item) => (
                       <Table.Tr key={item.phenotype_id}>
-                        <Table.Td>{item.phenotype_id}</Table.Td>
-                        <Table.Td>
+                        <Table.Td className="text-slate-800">
+                          {item.phenotype_id}
+                        </Table.Td>
+                        <Table.Td className="text-slate-800">
                           {item.recorded_date
                             ? new Date(item.recorded_date).toLocaleDateString(
                                 "en-AU"
                               )
                             : "N/A"}
                         </Table.Td>
-                        <Table.Td>{item.description}</Table.Td>
+                        <Table.Td className="text-slate-700">
+                          {item.description}
+                        </Table.Td>
                         <Table.Td>
                           <Group gap="xs">
+                            <ActionIcon
+                              variant="subtle"
+                              color="blue"
+                              onClick={() => handleEditRow("phenotype", item)}
+                            >
+                              <IconEdit size={16} />
+                            </ActionIcon>
                             <ActionIcon
                               variant="subtle"
                               color="red"
@@ -618,14 +751,9 @@ export default function PatientDetailsPage() {
               </Button>
             </div>
             <Divider className="mb-4" />
-            <div className="bg-gray-50 p-4 rounded-xl border border-transparent shadow-sm">
+            <div className="bg-slate-50 p-4 rounded-xl border border-transparent shadow-sm">
               <div className="overflow-x-auto">
-                <Table
-                  striped
-                  highlightOnHover
-                  withColumnBorders
-                  className="min-w-full"
-                >
+                <Table striped highlightOnHover className="min-w-full">
                   <Table.Thead>
                     <Table.Tr className="bg-slate-100">
                       <Table.Th className="text-slate-700 text-sm font-semibold">
@@ -747,6 +875,22 @@ export default function PatientDetailsPage() {
                   treatment: editingDiagnostic.treatment,
                   diagnosis_date: editingDiagnostic.diagnosis_date
                     ? new Date(editingDiagnostic.diagnosis_date)
+                    : null,
+                }
+              : null
+          }
+        />
+
+        <AddPhenotypeModal
+          opened={isAddPhenotypeOpen}
+          onClose={handleModalClose}
+          onApply={handleSavePhenotype}
+          initialData={
+            editingPhenotype
+              ? {
+                  description: editingPhenotype.description,
+                  recorded_date: editingPhenotype.recorded_date
+                    ? new Date(editingPhenotype.recorded_date)
                     : null,
                 }
               : null

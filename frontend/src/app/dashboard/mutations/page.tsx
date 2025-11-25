@@ -81,13 +81,10 @@ export default function MutationsPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(
-        "http://localhost/BIOM9450_MajorProject/BIOM9450/patient-system/mutation_dataset_visual.php",
-        {
-          method: "GET",
-          credentials: "include",
-        }
-      );
+      const res = await fetch("/api/mutation_dataset_visual", {
+        method: "GET",
+        credentials: "include",
+      });
 
       const raw = await res.text();
       const json = JSON.parse(raw);
@@ -111,13 +108,10 @@ export default function MutationsPage() {
     setLoadingHotspots(true);
     setHotspotError(null);
     try {
-      const res = await fetch(
-        "http://localhost/BIOM9450_MajorProject/BIOM9450/patient-system/mutation_gene_frequency.php",
-        {
-          method: "GET",
-          credentials: "include",
-        }
-      );
+      const res = await fetch("/api/mutation_gene_frequency", {
+        method: "GET",
+        credentials: "include",
+      });
       const raw = await res.text();
       const json = JSON.parse(raw);
 
@@ -139,13 +133,10 @@ export default function MutationsPage() {
     setLoadingChromDist(true);
     setChromDistError(null);
     try {
-      const res = await fetch(
-        "http://localhost/BIOM9450_MajorProject/BIOM9450/patient-system/mutation_chromosome_distribution.php",
-        {
-          method: "GET",
-          credentials: "include",
-        }
-      );
+      const res = await fetch("/api/mutation_chromosome_distribution", {
+        method: "GET",
+        credentials: "include",
+      });
 
       const raw = await res.text();
       const json = JSON.parse(raw);
@@ -442,12 +433,7 @@ export default function MutationsPage() {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <Table
-                    striped
-                    highlightOnHover
-                    withColumnBorders
-                    className="min-w-full"
-                  >
+                  <Table striped highlightOnHover className="min-w-full">
                     <Table.Thead>
                       <Table.Tr className="bg-slate-100">
                         <Table.Th className="text-slate-700 text-sm font-semibold">
