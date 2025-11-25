@@ -36,10 +36,17 @@ npm run dev
 
 ## Set up backend
 1. Copy "patient-system" into htdocs xampp/htdocs
-2. **IMPORTANT**: Also copy the "machine_learning" folder into htdocs
+2. **IMPORTANT**: Also copy the "machine_learning" folder into htdocs (Run the ML instructions first)
    - Structure should be:
      - xampp/htdocs/patient-system/
      - xampp/htdocs/machine_learning/
 3. Start apache and SQL server
 4. Access the admin dashboard and import the database.sql
+5. Import mutations from admin dashboard
+   - Convert from excel -> csv
+   - Navigate to the mutation table
+   - Click import and select the csv file
+   - Uncheck "Allow intteruption of import..." under "Partial Import"
+   - Set "Skip this number of queries..." to 1 (skips the column names of csv file)
+   - Paste the following into "Column Names" under "Format-specific Option": icgc_specimen_id, chromosome, chromosome_start, chromosome_end, mutation_type, mutated_from_allele, mutated_to_allele, consequence_type, gene_affected, cancer_type
 
