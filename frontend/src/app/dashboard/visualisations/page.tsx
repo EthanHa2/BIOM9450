@@ -152,23 +152,12 @@ export default function VisualisationsPage() {
         ];
 
   return (
-    <div className="min-h-screen flex">
+    <div className="h-screen flex overflow-hidden">
       <DashboardNavBar />
-      <main className="flex-1 flex flex-col px-40 py-25 overflow-y-auto bg-slate-50">
-        {/* Header */}
-        <div className="mb-8 flex justify-between items-center">
-          <div>
-            <h1 className="text-4xl font-bold text-slate-900">
-              Patient Data Overview
-            </h1>
-            <p className="text-slate-600 mt-1">
-              Integrated view of demographics, diagnostics, phenotypes and
-              mutations, with inline sex and age filters.
-            </p>
-          </div>
-          <Button variant="outline" onClick={fetchAllPatients}>
-            Refresh
-          </Button>
+      <main className="flex-1 flex flex-col px-40 py-25 overflow-y-auto">
+        {/* Header Title */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold ">Mutations Overview</h1>
         </div>
 
         {/* Content */}

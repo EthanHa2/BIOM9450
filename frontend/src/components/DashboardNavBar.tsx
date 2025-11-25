@@ -1,3 +1,5 @@
+"use client";
+
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -9,7 +11,7 @@ import {
 } from "@tabler/icons-react";
 import { Center, Stack, Tooltip } from "@mantine/core";
 import NextImage from "next/image";
-import logo from "@/assets/white_logo.png";
+import WhiteLogo from "@/assets/white_logo.png";
 
 interface NavbarLinkProps {
   icon: typeof IconDna2;
@@ -78,7 +80,7 @@ export function DashboardNavBar() {
   return (
     <nav className={NAVBAR_CLASSES}>
       <Center>
-        <NextImage src={logo} alt="Logo" width={50} height={50} priority />
+        <NextImage src={WhiteLogo} alt="Logo" width={50} height={50} priority />
       </Center>
 
       <div className={NAVBAR_MAIN_CLASSES}>
@@ -88,7 +90,12 @@ export function DashboardNavBar() {
       </div>
 
       <Stack justify="center" gap={5}>
-        <NavbarLink icon={IconUserFilled} label="Clinician Profile" />
+        <NavbarLink
+          icon={IconUserFilled}
+          label="Clinician Profile"
+          active={pathname === "/dashboard/profile"}
+          onClick={() => router.push("/dashboard/profile")}
+        />
         <NavbarLink icon={IconLogout} label="Sign Out" onClick={logout} />
       </Stack>
     </nav>

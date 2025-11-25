@@ -15,6 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/Patient.php';
+require_once __DIR__ . '/../includes/Clinician.php';
 require_once __DIR__ . '/../includes/Mutation.php';
 require_once __DIR__ . '/../includes/Diagnostic.php';
 require_once __DIR__ . '/../includes/Phenotype.php';
@@ -97,5 +98,6 @@ try {
 } catch (RuntimeException $e) { // client error
     json_response(400, ['error' => $e->getMessage()]);
 } catch (Throwable $e) { // server error
-    json_response(500, ['error' => 'Server error']);
+    error_log("Server error: " . $e->getMessage() . "\n" . $e->getTraceAsString());
+    json_response(500, ['error' => 'Server error', 'details' => $e->getMessage()]);
 }

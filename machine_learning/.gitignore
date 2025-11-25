@@ -1,0 +1,30 @@
+# Virtual environment
+venv/
+/venv
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Model artifacts
+*.pkl
+*.joblib
+*.h5
+*.model
+
+# Plots and images
+*.png
+*.jpg
+*.jpeg
+*.svg
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Dataset files (if not intended for commit)
+# *.csv
+# *.xlsx
+
+# Logs and temporary files
+*.log

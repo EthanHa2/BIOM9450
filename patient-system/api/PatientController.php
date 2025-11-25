@@ -48,18 +48,14 @@ final class PatientController
             }
 
             // /api/patient/{id}
-            switch ($method) {
-                case 'GET' && $sub === 'mutations':
-                    $this->getMutations($id); // GET /api/patient/{id}/mutations
-                    break;
-                case 'PUT':
-                    $this->update($id);  // update: PUT /api/patient/{id}
-                    break;
-                case 'DELETE':
-                    $this->delete($id);  // delete: DELETE /api/patient/{id}
-                    break;
-                default:
-                    json_response(405, ['error' => 'Method not allowed.']);
+            if ($method === 'GET' && ($sub === 'mutations' || $sub === 'mutation')) {
+                $this->getMutations($id); // GET /api/patient/{id}/mutations
+            } elseif ($method === 'PUT') {
+                $this->update($id);  // update: PUT /api/patient/{id}
+            } elseif ($method === 'DELETE') {
+                $this->delete($id);  // delete: DELETE /api/patient/{id}
+            } else {
+                json_response(405, ['error' => 'Method not allowed.']);
             }
         }
     }
