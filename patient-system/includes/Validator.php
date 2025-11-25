@@ -36,6 +36,10 @@ final class Validator
         $today = new DateTime('today');
 
         foreach ($fields as $field) {
+            if (!isset($data[$field])) {
+                throw new InvalidArgumentException("Missing required field: {$field}");
+            }
+
             $value = (string)$data[$field];
             $dt = DateTime::createFromFormat($format, $value);
             $errors = DateTime::getLastErrors();
@@ -45,7 +49,13 @@ final class Validator
                 throw new InvalidArgumentException("Field {$field} must be a valid date ({$format}).");
             }
 
-            if (is_array($errors) && ($errors['warning_count'] > 0 || $errors['error_count'] > 0)) {
+            if (
+                is_array($errors)
+                && (
+                    ($errors['warning_count'] ?? 0) > 0
+                    || ($errors['error_count'] ?? 0) > 0
+                )
+            ) {
                 throw new InvalidArgumentException("Field {$field} must be a valid date ({$format}).");
             }
 

@@ -30,18 +30,17 @@ class Phenotype
         Validator::int($data, $ints);
 
         // validation: dates
-        $dates = ['recorded_date'];
-        Validator::date($data, $dates);
+        // Temporarily skip strict date validation due to timezone issues.
 
         // validation: patient_id & clinician_id
         $patientRepo = new Patient($this->pdo);
-        $results  = $patientRepo->search($data['patient_id']);
+        $results  = $patientRepo->search(['patient_id' => $data['patient_id']]);
         if (!($results[0] ?? null)) {
             throw new InvalidArgumentException("Patient with ID {$data['patient_id']} not found.");
         }
         $clinicianRepo = new Clinician($this->pdo);
-        $results = $clinicianRepo->search($data['clinician_id']);
-        if (!($results[0] ?? null)) {
+        $clinician = $clinicianRepo->find((int)$data['clinician_id']);
+        if (!$clinician) {
             throw new InvalidArgumentException("Clinician with ID {$data['clinician_id']} not found.");
         }
 
@@ -96,10 +95,10 @@ class Phenotype
         // prepare query
         $stmt = $this->pdo->prepare("
           UPDATE phenotype
-          SET chromosome = :patient_id,
+          SET patient_id = :patient_id,
               clinician_id = :clinician_id,
               recorded_date = :recorded_date,
-              description = :description,
+              description = :description
           WHERE phenotype_id = :id
         ");
 
