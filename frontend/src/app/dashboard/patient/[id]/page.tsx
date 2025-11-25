@@ -13,6 +13,8 @@ import {
   Group,
   Text,
 } from "@mantine/core";
+import { DateInput } from "@mantine/dates";
+import "@mantine/dates/styles.css";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -88,10 +90,11 @@ interface Mutation {
 
 interface InfoRowProps {
   label: string;
-  value: string;
+  value: string | Date | null;
   isEditing: boolean;
-  onChange: (value: string) => void;
+  onChange: (value: string | Date | null) => void;
   readOnly?: boolean;
+  type?: "text" | "date";
 }
 
 function InfoRow({
@@ -100,24 +103,49 @@ function InfoRow({
   isEditing,
   onChange,
   readOnly = false,
+  type = "text",
 }: InfoRowProps) {
   return (
     <div className="flex items-center py-2">
       <div className="font-semibold w-40 text-gray-700">{label}:</div>
       <div className="flex-1">
-        <TextInput
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          readOnly={!isEditing || readOnly}
-          className="max-w-xl"
-          styles={{
-            input: {
-              backgroundColor: isEditing && !readOnly ? "white" : "#f8f9fa",
-              color: "#1f2937", // gray-800
-              cursor: isEditing && !readOnly ? "text" : "default",
-            },
-          }}
-        />
+        {type === "date" ? (
+          <DateInput
+            value={
+              value instanceof Date
+                ? value
+                : value
+                ? new Date(value as string)
+                : null
+            }
+            onChange={onChange}
+            readOnly={!isEditing || readOnly}
+            className="max-w-xl"
+            valueFormat="DD/MM/YYYY"
+            maxDate={new Date()}
+            styles={{
+              input: {
+                backgroundColor: isEditing && !readOnly ? "white" : "#f8f9fa",
+                color: "#1f2937",
+                cursor: isEditing && !readOnly ? "pointer" : "default",
+              },
+            }}
+          />
+        ) : (
+          <TextInput
+            value={value as string}
+            onChange={(e) => onChange(e.target.value)}
+            readOnly={!isEditing || readOnly}
+            className="max-w-xl"
+            styles={{
+              input: {
+                backgroundColor: isEditing && !readOnly ? "white" : "#f8f9fa",
+                color: "#1f2937", // gray-800
+                cursor: isEditing && !readOnly ? "text" : "default",
+              },
+            }}
+          />
+        )}
       </div>
     </div>
   );
@@ -209,11 +237,17 @@ export default function PatientDetailsPage() {
 
   // --- Handlers ---
 
-  const updatePatientField = (field: keyof Patient) => (value: string) => {
-    if (patient) {
-      setPatient({ ...patient, [field]: value });
-    }
-  };
+  const updatePatientField =
+    (field: keyof Patient) => (value: string | Date | null) => {
+      if (patient) {
+        let val = value;
+        if (value instanceof Date) {
+          // Convert Date back to string format YYYY-MM-DD for backend/state compatibility
+          val = value.toLocaleDateString("en-CA"); // en-CA outputs YYYY-MM-DD
+        }
+        setPatient({ ...patient, [field]: val });
+      }
+    };
 
   const handleSaveInfo = async () => {
     setBackupPatient(patient);
@@ -558,13 +592,10 @@ export default function PatientDetailsPage() {
                 />
                 <InfoRow
                   label="Date of Birth"
-                  value={
-                    patient.dob
-                      ? new Date(patient.dob).toLocaleDateString("en-AU")
-                      : ""
-                  }
+                  value={patient.dob}
                   isEditing={isEditingInfo}
                   onChange={updatePatientField("dob")}
+                  type="date"
                 />
                 <InfoRow
                   label="Sex"

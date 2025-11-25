@@ -29,14 +29,13 @@ const nextConfig: NextConfig = {
         destination: `${phpBaseUrl}/predict.php` 
       },
 
-      // Map Auth Files
       { 
         source: "/api/login", 
-        destination: `${phpBaseUrl}/pages/login.php` 
+        destination: `${phpBaseUrl}/login.php` 
       },
       { 
         source: "/api/logout", 
-        destination: `${phpBaseUrl}/pages/logout.php` 
+        destination: `${phpBaseUrl}/logout.php` 
       },
 
       // Catch-All for Controllers 

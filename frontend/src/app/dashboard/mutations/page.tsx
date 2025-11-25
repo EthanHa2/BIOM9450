@@ -1,13 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, Loader, Table, Tabs } from "@mantine/core";
+import { Button, Loader, Table, Tabs, ActionIcon, Group } from "@mantine/core";
 import { DashboardNavBar } from "@/components/DashboardNavBar";
-import { IconSearch } from "@tabler/icons-react";
+import { IconSearch, IconTrash, IconEdit } from "@tabler/icons-react";
 import {
   MutationFilterModal,
   MutationFilterValues,
 } from "@/components/MutationFilterModal";
+import {
+  AddMutationModal,
+  MutationFormData,
+} from "@/components/AddMutationModal";
+import { ConfirmationModal } from "@/components/ConfirmationModal";
 import {
   BarChart,
   Bar,
@@ -66,6 +71,16 @@ export default function MutationsPage() {
     mutatedTo: null,
     consequenceType: "",
   });
+
+  const [isAddMutationOpen, setIsAddMutationOpen] = useState(false);
+  const [editingMutation, setEditingMutation] = useState<MutationRow | null>(
+    null
+  );
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<
+    (() => Promise<void>) | null
+  >(null);
+  const [confirmMessage, setConfirmMessage] = useState("");
 
   const [geneHotspots, setGeneHotspots] = useState<GeneHotspot[]>([]);
   const [loadingHotspots, setLoadingHotspots] = useState(false);
@@ -157,6 +172,80 @@ export default function MutationsPage() {
     }
   };
 
+  const openDeleteModal = (mutationId: number) => {
+    setConfirmMessage(
+      "Are you sure you want to delete this mutation? This action cannot be undone."
+    );
+    setConfirmAction(() => async () => {
+      try {
+        const res = await fetch(`/api/mutation/${mutationId}`, {
+          method: "DELETE",
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to delete mutation");
+        }
+
+        setMutations((prev) =>
+          prev.filter((m) => m.mutation_id !== mutationId)
+        );
+      } catch (error) {
+        console.error("Error deleting mutation:", error);
+        alert("Failed to delete mutation.");
+      }
+    });
+    setConfirmModalOpen(true);
+  };
+
+  const handleSaveMutation = async (data: MutationFormData) => {
+    try {
+      const payload = {
+        ...data,
+        chromosome_start: Number(data.chromosome_start) || 0,
+        chromosome_end: Number(data.chromosome_end) || 0,
+      };
+
+      let res;
+      if (editingMutation) {
+        // UPDATE
+        res = await fetch(`/api/mutation/${editingMutation.mutation_id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...payload,
+            mutation_id: editingMutation.mutation_id,
+          }),
+        });
+      } else {
+        // CREATE
+        res = await fetch("/api/mutation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      if (!res.ok) throw new Error("Failed to save mutation");
+
+      // Refresh the list to show the new/updated item
+      await fetchMutations();
+    } catch (error) {
+      console.error("Error saving mutation:", error);
+      alert("Failed to save mutation.");
+      throw error;
+    }
+  };
+
+  const handleEdit = (mutation: MutationRow) => {
+    setEditingMutation(mutation);
+    setIsAddMutationOpen(true);
+  };
+
+  const handleAdd = () => {
+    setEditingMutation(null);
+    setIsAddMutationOpen(true);
+  };
+
   // Desired chromosome order: 1–22, X, Y
   const chromosomeOrder = [
     "1",
@@ -206,7 +295,7 @@ export default function MutationsPage() {
   const filteredMutations = mutations.filter((m) => {
     if (
       filters.cancerType &&
-      m.cancer_type.toLowerCase() !== filters.cancerType
+      m.cancer_type?.toLowerCase() !== filters.cancerType
     ) {
       return false;
     }
@@ -217,28 +306,28 @@ export default function MutationsPage() {
 
     if (
       filters.chromosomeStart &&
-      m.chromosome_start < Number(filters.chromosomeStart)
+      m.chromosome_start < Number(filters.chromosomeStart.replace(/,/g, ""))
     ) {
       return false;
     }
 
     if (
       filters.chromosomeEnd &&
-      m.chromosome_end > Number(filters.chromosomeEnd)
+      m.chromosome_end > Number(filters.chromosomeEnd.replace(/,/g, ""))
     ) {
       return false;
     }
 
     if (
       filters.mutatedFrom &&
-      m.mutated_from_allele.toUpperCase() !== filters.mutatedFrom
+      m.mutated_from_allele?.toUpperCase() !== filters.mutatedFrom
     ) {
       return false;
     }
 
     if (
       filters.mutatedTo &&
-      m.mutated_to_allele.toUpperCase() !== filters.mutatedTo
+      m.mutated_to_allele?.toUpperCase() !== filters.mutatedTo
     ) {
       return false;
     }
@@ -250,7 +339,7 @@ export default function MutationsPage() {
     if (
       filters.icgcSpecimenId &&
       !m.icgc_specimen_id
-        .toLowerCase()
+        ?.toLowerCase()
         .includes(filters.icgcSpecimenId.toLowerCase())
     ) {
       return false;
@@ -263,7 +352,7 @@ export default function MutationsPage() {
     if (
       filters.geneAffected &&
       !m.gene_affected
-        .toLowerCase()
+        ?.toLowerCase()
         .includes(filters.geneAffected.toLowerCase())
     ) {
       return false;
@@ -272,7 +361,7 @@ export default function MutationsPage() {
     if (
       filters.consequenceType &&
       !m.consequence_type
-        .toLowerCase()
+        ?.toLowerCase()
         .includes(filters.consequenceType.toLowerCase())
     ) {
       return false;
@@ -340,6 +429,24 @@ export default function MutationsPage() {
             <Table.Td className="text-slate-700">
               {formatString(m.cancer_type)}
             </Table.Td>
+            <Table.Td>
+              <Group gap="xs">
+                <ActionIcon
+                  variant="subtle"
+                  color="blue"
+                  onClick={() => handleEdit(m)}
+                >
+                  <IconEdit size={16} />
+                </ActionIcon>
+                <ActionIcon
+                  variant="subtle"
+                  color="red"
+                  onClick={() => openDeleteModal(m.mutation_id)}
+                >
+                  <IconTrash size={16} />
+                </ActionIcon>
+              </Group>
+            </Table.Td>
           </Table.Tr>
         ))
       : [
@@ -391,8 +498,8 @@ export default function MutationsPage() {
           </Button>
 
           <div className="flex gap-4">
-            <Button variant="filled" size="md" radius="md">
-              Upload Mutations
+            <Button variant="filled" size="md" radius="md" onClick={handleAdd}>
+              Add Mutation
             </Button>
             <Button variant="filled" size="md" radius="md">
               Download Report
@@ -490,6 +597,9 @@ export default function MutationsPage() {
                           <div className="flex items-center gap-1">
                             <span>Cancer Type</span>
                           </div>
+                        </Table.Th>
+                        <Table.Th className="text-slate-700 text-sm font-semibold">
+                          Actions
                         </Table.Th>
                       </Table.Tr>
                     </Table.Thead>
@@ -681,6 +791,38 @@ export default function MutationsPage() {
           setFilters(newFilters);
           setCurrentPage(1);
         }}
+      />
+
+      <AddMutationModal
+        opened={isAddMutationOpen}
+        onClose={() => setIsAddMutationOpen(false)}
+        onApply={handleSaveMutation}
+        initialData={
+          editingMutation
+            ? {
+                icgc_specimen_id: editingMutation.icgc_specimen_id,
+                chromosome: editingMutation.chromosome,
+                chromosome_start: editingMutation.chromosome_start,
+                chromosome_end: editingMutation.chromosome_end,
+                mutation_type: editingMutation.mutation_type,
+                mutated_from_allele: editingMutation.mutated_from_allele,
+                mutated_to_allele: editingMutation.mutated_to_allele,
+                consequence_type: editingMutation.consequence_type,
+                gene_affected: editingMutation.gene_affected,
+                cancer_type: editingMutation.cancer_type,
+              }
+            : null
+        }
+      />
+
+      <ConfirmationModal
+        opened={confirmModalOpen}
+        onClose={() => setConfirmModalOpen(false)}
+        onConfirm={confirmAction || (async () => {})}
+        message={confirmMessage}
+        title="Confirm Deletion"
+        confirmLabel="Delete"
+        confirmColor="red"
       />
     </div>
   );

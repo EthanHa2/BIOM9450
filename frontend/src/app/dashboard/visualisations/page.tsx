@@ -14,7 +14,7 @@ export default function VisualisationsPage() {
       <main className="flex-1 flex flex-col px-40 py-25 overflow-y-auto">
         {/* Header Title */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold ">Mutations Overview</h1>
+          <h1 className="text-4xl font-bold ">Visualisations</h1>
         </div>
 
         {/* Grid Content */}
