@@ -1,55 +1,89 @@
 <?php
-session_start();
-require 'db.php';
+// patient-system/login.php
 
-// Security headers
-header("Content-Type: application/json");
-// Change * to url once in production
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
+header('Content-Type: application/json; charset=UTF-8');
+
+// CORS for Next dev on localhost:3000
+header('Access-Control-Allow-Origin: http://localhost:3000');
+header('Access-Control-Allow-Credentials: true');
+header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Methods: POST, OPTIONS');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-  exit;
+    // Preflight request
+    exit;
 }
 
-// Receive json data
-$data = json_decode(file_get_contents("php://input"), true);
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
-  $username = trim($data['username'] ?? "");
-  $password = $data['password'] ?? "";
+session_start();
+require __DIR__ . '/db.php';
 
-  $stmt = $conn->prepare("SELECT clinician_id, username, password_hash FROM clinician WHERE username=? LIMIT 1");
-  $stmt->bind_param("s", $username);
-  $stmt->execute();
-  $result = $stmt->get_result();
-  $user = $result->fetch_assoc();
+$raw = file_get_contents('php://input');
+$data = json_decode($raw, true);
 
-  if ($user && password_verify($password, $user['password_hash'])) {
-    session_regenerate_id(true); // prevent fixation
-    $_SESSION['clinician_id'] = $user['clinician_id'];
-    $_SESSION['username']     = $user['username'];
+if (!is_array($data)) {
+    http_response_code(400);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Invalid JSON body',
+    ]);
+    exit;
+}
 
-    // Optional: record login
-    // $ip = $_SERVER['REMOTE_ADDR'] ?? '';
-    // $log = $conn->prepare("INSERT INTO user_activity (clinician_id, action, ip_address, login_time) VALUES (?, 'LOGIN', ?, NOW())");
-    // $log->bind_param("is", $user['clinician_id'], $ip);
-    // $log->execute();
+$email    = trim($data['email'] ?? '');
+$password = $data['password'] ?? '';
 
-    // send json response
-    echo json_encode(
-      ['success' => true,
-      'message' => 'Login successful',
-      'user' => [
-        'clinician_id' => $user['clinician_id'],
-         'username' => $user['username']]]
-        );
-    exit();
-  } else {
+if ($email === '' || $password === '') {
+    http_response_code(400);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Email and password are required.',
+    ]);
+    exit;
+}
+
+// Hash password same way as registration / seed data
+$password_hash = hash('sha256', $password);
+
+// Look up clinician
+$sql = "SELECT clinician_id, first_name, last_name, email, role
+        FROM clinician
+        WHERE email = ? AND password_hash = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param('ss', $email, $password_hash);
+$stmt->execute();
+$res = $stmt->get_result();
+
+if ($user = $res->fetch_assoc()) {
+    // Set session for later authenticated requests (if you use them)
+    $_SESSION['clinician_id'] = (int)$user['clinician_id'];
+    $_SESSION['role']         = $user['role'];
+    $_SESSION['email']        = $user['email'];
+
+    // Log login activity
+    $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+    $logSql = "INSERT INTO user_activity (clinician_id, activity_type, ip_address)
+               VALUES (?, 'login', ?)";
+    $logStmt = $conn->prepare($logSql);
+    $logStmt->bind_param('is', $user['clinician_id'], $ip);
+    $logStmt->execute();
+
+    // Build user object for frontend
+    $responseUser = [
+        'clinician_id' => (int)$user['clinician_id'],
+        'email'        => $user['email'],
+        'name'         => $user['first_name'] . ' ' . $user['last_name'],
+        'role'         => $user['role'], // optional, in case you want it
+    ];
+
+    echo json_encode([
+        'success' => true,
+        'message' => 'Login successful.',
+        'user'    => $responseUser,
+    ]);
+} else {
     http_response_code(401);
-    echo json_encode(['success' => false, 
-    'message' => 'Invalid username or password.']);
-    exit();
-  }
+    echo json_encode([
+        'success' => false,
+        'message' => 'Invalid email or password.',
+    ]);
 }
-?>
