@@ -21,7 +21,8 @@ CREATE TABLE patient (
     sex ENUM('Male', 'Female', 'Other') NOT NULL,
     phone VARCHAR(20) NOT NULL,
     address TEXT,
-    photo TEXT
+    photo TEXT,
+    icgc_specimen_id VARCHAR(50) UNIQUE
 ) ENGINE = InnoDB;
 CREATE TABLE diagnostic (
     diagnosis_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -94,7 +95,7 @@ CREATE TABLE category (
     CONSTRAINT fk_category_patient FOREIGN KEY (patient_id) REFERENCES patient(patient_id) ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE = InnoDB;
 -- 2) SEED DATA (randomly generated)
-    INSERT INTO clinician (
+INSERT INTO clinician (
         first_name,
         last_name,
         email,
@@ -109,7 +110,7 @@ VALUES (
         'alice.smith@clinic.com',
         SHA2('Passw0rd!', 256),
         'Geneticist',
-        0412345678,
+        '0412345678',
         'admin'
     ),
     (
@@ -118,18 +119,20 @@ VALUES (
         'ben.lee@clinic.com',
         SHA2('Clinician1', 256),
         'Oncologist',
-        0412345679,
+        '0412345679',
         'clinician'
     ),
     ('Claire', 'Zhou', 'claire.zhou@clinic.com', SHA2('Doctor123', 256), 'Neurologist', '0423000111', 'clinician'),
-('David', 'Nguyen', 'david.nguyen@clinic.com', SHA2('Path0logy!', 256), 'Pathologist', '0423000222', 'clinician');
+    ('David', 'Nguyen', 'david.nguyen@clinic.com', SHA2('Path0logy!', 256), 'Pathologist', '0423000222', 'clinician');
+
 INSERT INTO patient (
         first_name,
         last_name,
         dob,
         sex,
         phone,
-        address
+        address,
+        icgc_specimen_id
     )
 VALUES (
         'John',
@@ -137,7 +140,8 @@ VALUES (
         '1990-05-21',
         'Male',
         '0412345678',
-        '12 Park St, Sydney'
+        '12 Park St, Sydney',
+        NULL
     ),
     (
         'Mary',
@@ -145,7 +149,8 @@ VALUES (
         '1985-02-09',
         'Female',
         '0411111222',
-        '8 King Rd, Wollongong'
+        '8 King Rd, Wollongong',
+        NULL
     ),
     ('Lucas', 'Kim', '1978-11-04', 'Male',   '0423333444', '22 Queen St, Canberra', NULL),
 ('Emma',  'Brown', '2000-06-17', 'Female','0455555666', '5 Ocean Ave, Melbourne', NULL),
@@ -160,53 +165,44 @@ INSERT INTO diagnostic (
         diagnosis_date,
         treatment
     )
-VALUES (
-        1,
-        1,
+VALUES
+    (1, 1,
         'Genetic Disorder',
         'Neurodevelopmental delay; pending exome results.',
         '2024-07-15',
         'N/A'
     ),
-    (
-        2,
-        1,
+    (2, 1,
         'Cancer',
         'Invasive ductal carcinoma; ER/PR+.',
         '2024-08-20',
         'Chemo'
     ),
-    (   3, 
-        3, 
+    (3, 3,
         'Neurological Disorder',
         'Drug-resistant epilepsy, possible SCN1A mutation.',
-        'Anti-epileptic medication; EEG monitoring.',
-        '2023-12-10'
+        '2023-12-10',
+        'Anti-epileptic medication; EEG monitoring.'
     ),
-    (   
-        4, 
-        3, 
+    (4, 3,
         'Neurocutaneous Disorder',
         'Multiple café-au-lait spots; NF1 deletion confirmed.',
-        'Annual MRI and ophthalmology review.',
-        '2024-03-01'
+        '2024-03-01',
+        'Annual MRI and ophthalmology review.'
     ),
-    (   
-        5, 
-        2, 
+    (5, 2,
         'Cancer',
         'Colorectal carcinoma, microsatellite instability high (MSI-H).',
-        'Surgical resection; adjuvant chemotherapy.',
-        '2024-04-09'
+        '2024-04-09',
+        'Surgical resection; adjuvant chemotherapy.'
     ),
-    (   
-        6, 
-        1,
+    (6, 1,
         'Genetic Disorder',
         'Autism spectrum disorder; CMA pending for CNV analysis.',
-        'Behavioural therapy; speech therapy referral.',
-        '2024-05-10'
+        '2024-05-10',
+        'Behavioural therapy; speech therapy referral.'
     );
+
 
 INSERT INTO phenotype (
         patient_id,
@@ -240,7 +236,7 @@ VALUES (1, 'login', '192.168.1.2'),
     (2, 'login', '192.168.1.3'),
 (2, 'edit',   '192.168.1.11'),
 (3, 'login',  '192.168.1.12'),
-(4, 'report', '192.168.1.13');;
+(4, 'report', '192.168.1.13');
 
 INSERT INTO reports (patient_id, report_type, content)
 VALUES (
@@ -256,11 +252,58 @@ VALUES (
 (NULL, 'general', 'Monthly overview: increase in neurological and cancer cases over last quarter.');
 
 -- 3) import CSV (run if file exists and LOCAL is allowed)
-LOAD DATA LOCAL INFILE '...\\Mutation_original.csv' INTO TABLE mutation FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n' IGNORE 1 ROWS;
-INSERT INTO patient_mutation (patient_id, mutation_id)
-VALUES (1, 1),
-    (1, 2),
-    (1, 3),
-    (2, 2);
+-- 3) IMPORT CSV INTO mutation
+-- (update the path to wherever the file lives on your machine)
+LOAD DATA LOCAL INFILE '/Users/sarina/Downloads/BIOM9450/BIOM9450/Mutation_original.csv'
+INTO TABLE mutation
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS
+(icgc_specimen_id,
+ chromosome,
+ chromosome_start,
+ chromosome_end,
+ mutation_type,
+ mutated_from_allele,
+ mutated_to_allele,
+ consequence_type,
+ gene_affected,
+ cancer_type);
+
+-- 4) CREATE ONE PATIENT PER DISTINCT icgc_specimen_id
+INSERT INTO patient (
+    first_name,
+    last_name,
+    dob,
+    sex,
+    phone,
+    address,
+    photo,
+    icgc_specimen_id
+)
+SELECT DISTINCT
+    'ICGC' AS first_name,
+    m.icgc_specimen_id AS last_name,
+    '1970-01-01' AS dob,
+    'Other' AS sex,
+    '0000000000' AS phone,
+    CONCAT('Imported from ICGC dataset (cancer type: ', m.cancer_type, ')') AS address,
+    NULL AS photo,
+    m.icgc_specimen_id
+FROM mutation m
+LEFT JOIN patient p
+    ON p.icgc_specimen_id = m.icgc_specimen_id
+WHERE p.icgc_specimen_id IS NULL;
+
+-- 5) FILL THE patient_mutation JUNCTION TABLE
+INSERT INTO patient_mutation (patient_id, mutation_id, recorded_date)
+SELECT
+    p.patient_id,
+    m.mutation_id,
+    CURRENT_DATE
+FROM mutation m
+JOIN patient p
+  ON m.icgc_specimen_id = p.icgc_specimen_id;
+
 -- mysql -u root -p
 -- mysql --local-infile=1 -u root -p patient_management < database.sql
