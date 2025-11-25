@@ -63,8 +63,15 @@ if ($resourceIndex === -1) {
 }
 
 $resource = $parts[$resourceIndex];
-$id = isset($parts[$resourceIndex + 1]) ? (int)$parts[$resourceIndex + 1] : null;
-$sub = $parts[$resourceIndex + 2] ?? null;
+$nextPart = $parts[$resourceIndex + 1] ?? null;
+
+if ($nextPart !== null && ctype_digit($nextPart)) {
+    $id = (int)$nextPart;
+    $sub = $parts[$resourceIndex + 2] ?? null;
+} else {
+    $id = null;
+    $sub = $nextPart;
+}
 $method = $_SERVER['REQUEST_METHOD'];
 
 
