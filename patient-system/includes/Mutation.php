@@ -170,8 +170,47 @@ class Mutation
     // delete mutation
     public function delete(int $id): void
     {
-        $stmt = $this->pdo->prepare("DELETE FROM mutation WHERE mutation_id=?");
-        $stmt->execute([$id]);
+        // remove references from patient_mutation first to satisfy foreign key constraints
+        $this->pdo->beginTransaction();
+        try {
+            $stmt = $this->pdo->prepare("DELETE FROM patient_mutation WHERE mutation_id = ?");
+            $stmt->execute([$id]);
+
+            $stmt = $this->pdo->prepare("DELETE FROM mutation WHERE mutation_id = ?");
+            $stmt->execute([$id]);
+
+            $this->pdo->commit();
+        } catch (Exception $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
+    }
+
+    // link mutation to patient
+    public function linkPatient(int $patientId, int $mutationId): void
+    {
+        // Check if link already exists to avoid duplicates
+        $check = $this->pdo->prepare("SELECT 1 FROM patient_mutation WHERE patient_id = ? AND mutation_id = ?");
+        $check->execute([$patientId, $mutationId]);
+        if ($check->fetch()) {
+            return; // Already linked
+        }
+
+        $stmt = $this->pdo->prepare("INSERT INTO patient_mutation (patient_id, mutation_id) VALUES (:patient_id, :mutation_id)");
+        $stmt->execute([
+            ':patient_id' => $patientId,
+            ':mutation_id' => $mutationId
+        ]);
+    }
+
+    // unlink mutation from patient
+    public function unlinkPatient(int $patientId, int $mutationId): void
+    {
+        $stmt = $this->pdo->prepare("DELETE FROM patient_mutation WHERE patient_id = :patient_id AND mutation_id = :mutation_id");
+        $stmt->execute([
+            ':patient_id' => $patientId,
+            ':mutation_id' => $mutationId
+        ]);
     }
 
     // search mutation
