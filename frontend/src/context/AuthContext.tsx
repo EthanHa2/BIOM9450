@@ -31,9 +31,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Restore user from localStorage (non-sensitive snapshot for UX only)
-    const storedUser = typeof window !== "undefined"
-      ? localStorage.getItem("user")
-      : null;
+    const storedUser =
+      typeof window !== "undefined" ? localStorage.getItem("user") : null;
 
     if (storedUser) {
       try {
@@ -57,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Call backend to destroy PHP session & log logout
       await fetch(
-        "http://localhost/BIOM9450_MajorProject/BIOM9450/patient-system/logout.php", // <-- change to your actual path
+        "api/logout", // <-- change to your actual path
         {
           method: "POST",
           credentials: "include", // send PHP session cookie

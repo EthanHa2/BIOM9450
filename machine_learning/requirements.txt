@@ -5,5 +5,4 @@ scipy
 scikit-optimize
 matplotlib
 seaborn
-skopt
 joblib
