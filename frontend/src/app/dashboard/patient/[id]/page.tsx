@@ -176,7 +176,7 @@ export default function PatientDetailsPage() {
         setPhenotypes(phData.phenotypes || []);
 
         // Fetch Mutations
-        const mRes = await fetch(`${API_BASE_URL}/patient/${id}/mutation`);
+        const mRes = await fetch(`${API_BASE_URL}/patient/${id}/mutations`);
         const mData = await mRes.json();
         setMutations(mData.mutations || []);
       } catch (error) {
@@ -619,68 +619,118 @@ export default function PatientDetailsPage() {
             </div>
             <Divider className="mb-4" />
             <div className="bg-gray-50 p-4 rounded-xl border border-transparent shadow-sm">
-              <Table highlightOnHover verticalSpacing="sm">
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>ID</Table.Th>
-                    <Table.Th>Specimen ID</Table.Th>
-                    <Table.Th>Gene</Table.Th>
-                    <Table.Th>Type</Table.Th>
-                    <Table.Th>Consequence</Table.Th>
-                    <Table.Th>Chromosome</Table.Th>
-                    <Table.Th>Start</Table.Th>
-                    <Table.Th>End</Table.Th>
-                    <Table.Th>Change</Table.Th>
-                    <Table.Th>Actions</Table.Th>
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {mutations.length > 0 ? (
-                    mutations.map((item) => (
-                      <Table.Tr key={item.mutation_id}>
-                        <Table.Td>{item.mutation_id}</Table.Td>
-                        <Table.Td>{item.icgc_specimen_id}</Table.Td>
-                        <Table.Td className="font-semibold">
-                          {item.gene_affected}
-                        </Table.Td>
-                        <Table.Td>{formatString(item.mutation_type)}</Table.Td>
-                        <Table.Td>
-                          {formatString(item.consequence_type)}
-                        </Table.Td>
-                        <Table.Td>{item.chromosome}</Table.Td>
-                        <Table.Td>{item.chromosome_start}</Table.Td>
-                        <Table.Td>{item.chromosome_end}</Table.Td>
-                        <Table.Td>
-                          {item.mutated_from_allele} &rarr;{" "}
-                          {item.mutated_to_allele}
-                        </Table.Td>
-                        <Table.Td>
-                          <Group gap="xs">
-                            <ActionIcon
-                              variant="subtle"
-                              color="red"
-                              onClick={() =>
-                                openDeleteModal("mutation", item.mutation_id)
-                              }
-                            >
-                              <IconTrash size={16} />
-                            </ActionIcon>
-                          </Group>
+              <div className="overflow-x-auto">
+                <Table
+                  striped
+                  highlightOnHover
+                  withColumnBorders
+                  className="min-w-full"
+                >
+                  <Table.Thead>
+                    <Table.Tr className="bg-slate-100">
+                      <Table.Th className="text-slate-700 text-sm font-semibold">
+                        ICGC Specimen ID
+                      </Table.Th>
+                      <Table.Th className="text-slate-700 text-sm font-semibold">
+                        Mutation ID
+                      </Table.Th>
+                      <Table.Th className="text-slate-700 text-sm font-semibold">
+                        Chromosome
+                      </Table.Th>
+                      <Table.Th className="text-slate-700 text-sm font-semibold">
+                        Chr Start
+                      </Table.Th>
+                      <Table.Th className="text-slate-700 text-sm font-semibold">
+                        Chr End
+                      </Table.Th>
+                      <Table.Th className="text-slate-700 text-sm font-semibold">
+                        Mutation Type
+                      </Table.Th>
+                      <Table.Th className="text-slate-700 text-sm font-semibold">
+                        From
+                      </Table.Th>
+                      <Table.Th className="text-slate-700 text-sm font-semibold">
+                        To
+                      </Table.Th>
+                      <Table.Th className="text-slate-700 text-sm font-semibold">
+                        Consequence
+                      </Table.Th>
+                      <Table.Th className="text-slate-700 text-sm font-semibold">
+                        Gene
+                      </Table.Th>
+                      <Table.Th className="text-slate-700 text-sm font-semibold">
+                        Cancer Type
+                      </Table.Th>
+                      <Table.Th className="text-slate-700 text-sm font-semibold">
+                        Actions
+                      </Table.Th>
+                    </Table.Tr>
+                  </Table.Thead>
+                  <Table.Tbody>
+                    {mutations.length > 0 ? (
+                      mutations.map((item) => (
+                        <Table.Tr key={item.mutation_id}>
+                          <Table.Td className="text-slate-800">
+                            {item.icgc_specimen_id}
+                          </Table.Td>
+                          <Table.Td className="text-slate-800">
+                            {item.mutation_id}
+                          </Table.Td>
+                          <Table.Td className="text-slate-700">
+                            {item.chromosome}
+                          </Table.Td>
+                          <Table.Td className="text-slate-700">
+                            {item.chromosome_start}
+                          </Table.Td>
+                          <Table.Td className="text-slate-700">
+                            {item.chromosome_end}
+                          </Table.Td>
+                          <Table.Td className="text-slate-700">
+                            {formatString(item.mutation_type)}
+                          </Table.Td>
+                          <Table.Td className="text-slate-700">
+                            {item.mutated_from_allele}
+                          </Table.Td>
+                          <Table.Td className="text-slate-700">
+                            {item.mutated_to_allele}
+                          </Table.Td>
+                          <Table.Td className="text-slate-700">
+                            {formatString(item.consequence_type)}
+                          </Table.Td>
+                          <Table.Td className="text-slate-700">
+                            {item.gene_affected}
+                          </Table.Td>
+                          <Table.Td className="text-slate-700">
+                            {formatString(item.cancer_type)}
+                          </Table.Td>
+                          <Table.Td>
+                            <Group gap="xs">
+                              <ActionIcon
+                                variant="subtle"
+                                color="red"
+                                onClick={() =>
+                                  openDeleteModal("mutation", item.mutation_id)
+                                }
+                              >
+                                <IconTrash size={16} />
+                              </ActionIcon>
+                            </Group>
+                          </Table.Td>
+                        </Table.Tr>
+                      ))
+                    ) : (
+                      <Table.Tr>
+                        <Table.Td
+                          colSpan={12}
+                          className="text-center text-gray-500"
+                        >
+                          No mutations recorded.
                         </Table.Td>
                       </Table.Tr>
-                    ))
-                  ) : (
-                    <Table.Tr>
-                      <Table.Td
-                        colSpan={10}
-                        className="text-center text-gray-500"
-                      >
-                        No mutations recorded.
-                      </Table.Td>
-                    </Table.Tr>
-                  )}
-                </Table.Tbody>
-              </Table>
+                    )}
+                  </Table.Tbody>
+                </Table>
+              </div>
             </div>
           </section>
         </main>
