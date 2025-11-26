@@ -68,35 +68,26 @@ class Mutation
         // validation
         $clean = $this->processData($data);
 
-        $this->pdo->beginTransaction();
-        try {
-            $stmt = $this->pdo->prepare("
-                INSERT INTO mutation
-                    (chromosome, chromosome_start, chromosome_end, mutation_type, mutated_from_allele, mutated_to_allele, consequence_type, gene_affected, cancer_type)
-                VALUES
-                    (:chromosome, :chromosome_start, :chromosome_end, :mutation_type, :mutated_from_allele, :mutated_to_allele, :consequence_type, :gene_affected, :cancer_type)
-            ");
+        $stmt = $this->pdo->prepare("
+            INSERT INTO mutation
+                (chromosome, chromosome_start, chromosome_end, mutation_type, mutated_from_allele, mutated_to_allele, consequence_type, gene_affected, cancer_type)
+            VALUES
+                (:chromosome, :chromosome_start, :chromosome_end, :mutation_type, :mutated_from_allele, :mutated_to_allele, :consequence_type, :gene_affected, :cancer_type)
+        ");
 
-            $stmt->execute([
-                ':chromosome' => $clean['chromosome'],
-                ':chromosome_start' => $clean['chromosome_start'],
-                ':chromosome_end' => $clean['chromosome_end'],
-                ':mutation_type' => $clean['mutation_type'],
-                ':mutated_from_allele' => $clean['mutated_from_allele'],
-                ':mutated_to_allele' => $clean['mutated_to_allele'],
-                ':consequence_type' => $clean['consequence_type'],
-                ':gene_affected' => $clean['gene_affected'],
-                ':cancer_type' => $clean['cancer_type'],
-            ]);
+        $stmt->execute([
+            ':chromosome' => $clean['chromosome'],
+            ':chromosome_start' => $clean['chromosome_start'],
+            ':chromosome_end' => $clean['chromosome_end'],
+            ':mutation_type' => $clean['mutation_type'],
+            ':mutated_from_allele' => $clean['mutated_from_allele'],
+            ':mutated_to_allele' => $clean['mutated_to_allele'],
+            ':consequence_type' => $clean['consequence_type'],
+            ':gene_affected' => $clean['gene_affected'],
+            ':cancer_type' => $clean['cancer_type'],
+        ]);
 
-            $mutationId = (int)$this->pdo->lastInsertId();
-
-            $this->pdo->commit();
-            return $mutationId;
-        } catch (Exception $e) {
-            $this->pdo->rollBack();
-            throw $e;
-        }
+        return (int)$this->pdo->lastInsertId();
     }
 
     // update mutation
