@@ -9,8 +9,15 @@ final class DiagnosticController
     // entry point from API
     public function handle(?int $id, ?string $sub, ?string $method): void
     {
-        // /api/diagnostic
+        // /api/diagnostic or /api/diagnostic/{sub}
         if ($id === null) {
+
+            // NEW: stats endpoint -> GET /api/diagnostic/stats
+            if ($method === 'GET' && $sub === 'stats') {
+                $this->stats();
+                return;
+            }
+
             switch ($method) {
                 case 'GET':
                     $this->search();  // search: GET /api/diagnostic
@@ -31,7 +38,6 @@ final class DiagnosticController
                 json(404, ['error' => "Diagnostic with ID {$id} not found."]);
             }
 
-            // /api/diagnostic/{id}
             switch ($method) {
                 case 'PUT':
                     $this->update($id);  // update: PUT /api/diagnostic/{id}
@@ -50,13 +56,13 @@ final class DiagnosticController
     {
         $diagnostic = new Diagnostic($this->pdo);
         $filters = [
-            'diagnosis_id' => $_GET['diagnostic_id'] ?? null,
-            'patient_id' => $_GET['patient_id'] ?? null,
-            'clinician_id' => $_GET['clinician_id'] ?? null,
-            'diagnosis_date' => $_GET['diagnosis_date'] ?? null,
-            'diagnosis_type' => $_GET['diagnosis_type'] ?? null,
-            'description' => $_GET['description'] ?? null,
-            'treatment' => $_GET['treatment'] ?? null,
+            'diagnosis_id'  => $_GET['diagnostic_id'] ?? null,
+            'patient_id'    => $_GET['patient_id'] ?? null,
+            'clinician_id'  => $_GET['clinician_id'] ?? null,
+            'diagnosis_date'=> $_GET['diagnosis_date'] ?? null,
+            'diagnosis_type'=> $_GET['diagnosis_type'] ?? null,
+            'description'   => $_GET['description'] ?? null,
+            'treatment'     => $_GET['treatment'] ?? null,
         ];
         $results = $diagnostic->search($filters);
         json(200, ['diagnostics' => $results]);
@@ -71,7 +77,7 @@ final class DiagnosticController
 
         json(201, [
             'diagnostic_id' => $newId,
-            'message' => 'Diagnostic created successfully.',
+            'message'       => 'Diagnostic created successfully.',
         ]);
     }
 
@@ -94,5 +100,57 @@ final class DiagnosticController
         $diagnostic = new Diagnostic($this->pdo);
         $diagnostic->delete($id);
         json(200, ['message' => "Diagnostic {$id} deleted successfully."]);
+    }
+
+    /**
+     * NEW: statistics endpoint for visualisations
+     * GET /api/diagnostic/stats?sex=Male&minAge=20&maxAge=60
+     */
+    private function stats(): void
+    {
+        // Optional filters
+        $sex    = $_GET['sex']    ?? null;             // 'Male', 'Female', 'Other'
+        $minAge = $_GET['minAge'] ?? null;
+        $maxAge = $_GET['maxAge'] ?? null;
+
+        $minAge = ($minAge !== null && $minAge !== '') ? (int)$minAge : null;
+        $maxAge = ($maxAge !== null && $maxAge !== '') ? (int)$maxAge : null;
+
+        $sql = "
+            SELECT 
+                d.diagnosis_type,
+                COUNT(DISTINCT p.patient_id) AS patient_count
+            FROM diagnostic d
+            JOIN patient p ON p.patient_id = d.patient_id
+            WHERE 1 = 1
+        ";
+
+        $params = [];
+
+        if ($sex !== null && $sex !== '') {
+            $sql .= " AND p.sex = :sex";
+            $params[':sex'] = $sex;
+        }
+
+        if ($minAge !== null) {
+            $sql .= " AND TIMESTAMPDIFF(YEAR, p.dob, CURDATE()) >= :minAge";
+            $params[':minAge'] = $minAge;
+        }
+
+        if ($maxAge !== null) {
+            $sql .= " AND TIMESTAMPDIFF(YEAR, p.dob, CURDATE()) <= :maxAge";
+            $params[':maxAge'] = $maxAge;
+        }
+
+        $sql .= "
+            GROUP BY d.diagnosis_type
+            ORDER BY patient_count DESC
+        ";
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $this->json(200, $rows);
     }
 }
