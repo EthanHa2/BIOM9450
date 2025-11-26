@@ -151,6 +151,6 @@ final class PhenotypeController
         $stmt->execute($params);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        $this->json(200, $rows);
+        json(200, $rows);
     }
 }
