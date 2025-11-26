@@ -28,17 +28,13 @@ final class MutationController
     {
         // /api/mutation or /api/mutation/{sub}
         if ($id === null) {
-
-            // NEW: stats endpoint -> GET /api/mutation/stats
-            if ($method === 'GET' && $sub === 'stats') {
-                $this->stats();
-                return;
-            }
-
             switch ($method) {
-                case 'GET':
+                case 'GET' && $sub === null:
                     $this->search();  // search: GET /api/mutation
                     break;
+                    case 'GET' && $sub === 'stats':
+                        $this->stats();  // stats: GET /api/mutation/stats
+                        break;
                 case 'POST':
                     if ($sub === 'link') {
                         $this->link();         // link mutation: POST /api/mutation/link
@@ -55,10 +51,10 @@ final class MutationController
         // /api/mutation/{id}
         else {
             switch ($method) {
-                case 'PUT':
+                case 'PUT' && $sub === null:
                     $this->update($id);  // update: PUT /api/mutation/{id}
                     break;
-                case 'DELETE':
+                case 'DELETE' && $sub === null:
                     $this->delete($id);  // delete: DELETE /api/mutation/{id}
                     break;
                 default:

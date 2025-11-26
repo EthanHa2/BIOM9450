@@ -12,10 +12,10 @@ class ClinicianController
         // /api/clinician
         if ($id === null) {
             switch ($method) {
-                case 'GET':
+                case 'GET' && $sub === null:
                     $this->search();  // search: GET /api/clinician
                     break;
-                case 'POST':
+                case 'POST' && $sub === null:
                     $this->create();  // create: POST /api/clinician
                     break;
                 default:
@@ -25,13 +25,13 @@ class ClinicianController
         // /api/clinician/{id}
         else {
             switch ($method) {
-                case 'GET':
+                case 'GET' && $sub === null:
                     $this->find($id); // GET /api/clinician/{id}
                     break;
-                case 'PUT':
+                case 'PUT' && $sub === null:
                     $this->update($id);  // update: PUT /api/clinician/{id}
                     break;
-                case 'DELETE':
+                case 'DELETE' && $sub === null:
                     $this->delete($id);  // delete: DELETE /api/clinician/{id}
                     break;
                 default:

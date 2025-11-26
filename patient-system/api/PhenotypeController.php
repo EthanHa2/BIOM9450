@@ -28,18 +28,14 @@ final class PhenotypeController
     {
         // /api/phenotype or /api/phenotype/{sub}
         if ($id === null) {
-
-            // NEW: stats endpoint -> GET /api/phenotype/stats
-            if ($method === 'GET' && $sub === 'stats') {
-                $this->stats();
-                return;
-            }
-
             switch ($method) {
-                case 'GET':
+                case 'GET' && $sub === 'stats':
+                    $this->stats(); // stats: GET /api/phenotype/stats
+                    break;
+                case 'GET' && $sub === null:
                     $this->search();  // search: GET /api/phenotype
                     break;
-                case 'POST':
+                case 'POST' && $sub === null:
                     $this->create();  // create: POST /api/phenotype
                     break;
                 default:
@@ -48,19 +44,12 @@ final class PhenotypeController
         }
         // /api/phenotype/{id}
         else {
-            // validation: check phenotype ID
-            $phenotype = new Phenotype($this->pdo);
-            $row = $phenotype->search(['phenotype_id' => $id])[0] ?? null;
-            if (!$row) {
-                $this->json(404, ['error' => "Phenotype with ID {$id} not found."]);
-            }
-
             // /api/phenotype/{id}
             switch ($method) {
-                case 'PUT':
+                case 'PUT' && $sub === null:
                     $this->update($id);  // update: PUT /api/phenotype/{id}
                     break;
-                case 'DELETE':
+                case 'DELETE' && $sub === null:
                     $this->delete($id);  // delete: DELETE /api/phenotype/{id}
                     break;
                 default:

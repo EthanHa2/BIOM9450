@@ -12,10 +12,10 @@ final class PatientController
         // /api/patient
         if ($id === null) {
             switch ($method) {
-                case 'GET':
+                case 'GET' && $sub === null:
                     $this->search();  // search: GET /api/patient
                     break;
-                case 'POST':
+                case 'POST' && $sub === null:
                     $this->create();  // create: POST /api/patient
                     break;
                 default:
@@ -25,11 +25,11 @@ final class PatientController
         // /api/patient/{id}
         else {
             // /api/patient/{id}
-            if ($method === 'GET' && ($sub === 'mutations' || $sub === 'mutation')) {
+            if ($method === 'GET' && $sub === 'mutations') {
                 $this->getMutations($id); // GET /api/patient/{id}/mutations
-            } elseif ($method === 'PUT') {
+            } elseif ($method === 'PUT' && $sub === null) {
                 $this->update($id);  // update: PUT /api/patient/{id}
-            } elseif ($method === 'DELETE') {
+            } elseif ($method === 'DELETE' && $sub === null) {
                 $this->delete($id);  // delete: DELETE /api/patient/{id}
             } else {
                 json(405, ['error' => 'Method not allowed.']);

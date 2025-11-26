@@ -28,18 +28,14 @@ final class DiagnosticController
     {
         // /api/diagnostic or /api/diagnostic/{sub}
         if ($id === null) {
-
-            // NEW: stats endpoint -> GET /api/diagnostic/stats
-            if ($method === 'GET' && $sub === 'stats') {
-                $this->stats();
-                return;
-            }
-
             switch ($method) {
-                case 'GET':
+                case 'GET' && $sub === 'stats':
+                    $this->stats();  // stats: GET /api/diagnostic/stats
+                    break;
+                case 'GET' && $sub === null:
                     $this->search();  // search: GET /api/diagnostic
                     break;
-                case 'POST':
+                case 'POST' && $sub === null:
                     $this->create();  // create: POST /api/diagnostic
                     break;
                 default:
@@ -48,18 +44,11 @@ final class DiagnosticController
         }
         // /api/diagnostic/{id}
         else {
-            // validation: check diagnostic ID
-            $diagnostic = new Diagnostic($this->pdo);
-            $row = $diagnostic->search(['diagnostic_id' => $id])[0] ?? null;
-            if (!$row) {
-                $this->json(404, ['error' => "Diagnostic with ID {$id} not found."]);
-            }
-
             switch ($method) {
-                case 'PUT':
+                case 'PUT' && $sub === null:
                     $this->update($id);  // update: PUT /api/diagnostic/{id}
                     break;
-                case 'DELETE':
+                case 'DELETE' && $sub === null:
                     $this->delete($id);  // delete: DELETE /api/diagnostic/{id}
                     break;
                 default:
