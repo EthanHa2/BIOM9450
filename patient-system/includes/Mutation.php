@@ -7,8 +7,6 @@ class Mutation
     public function __construct(private PDO $pdo) {}
 
     private const FIELDS = [
-        'patient_id',
-        'icgc_specimen_id',
         'chromosome',
         'chromosome_start',
         'chromosome_end',
@@ -25,7 +23,6 @@ class Mutation
     {
         // validation: required
         $required = [
-            'icgc_specimen_id',
             'chromosome',
             'chromosome_start',
             'chromosome_end',
@@ -38,11 +35,7 @@ class Mutation
         Validator::required($data, $required);
 
         // validation: integers
-
         $ints = ['chromosome_start', 'chromosome_end'];
-        if (isset($data['patient_id']) && $data['patient_id'] !== '') {
-            $ints[] = 'patient_id';
-        }
         Validator::int($data, $ints);
 
         // validation: chromosome end >= chromosome start (only if both present)
@@ -52,7 +45,6 @@ class Mutation
 
         // trim strings
         $strings = [
-            'icgc_specimen_id',
             'chromosome',
             'mutation_type',
             'mutated_from_allele',
@@ -80,13 +72,12 @@ class Mutation
         try {
             $stmt = $this->pdo->prepare("
                 INSERT INTO mutation
-                    (icgc_specimen_id, chromosome, chromosome_start, chromosome_end, mutation_type, mutated_from_allele, mutated_to_allele, consequence_type, gene_affected, cancer_type)
+                    (chromosome, chromosome_start, chromosome_end, mutation_type, mutated_from_allele, mutated_to_allele, consequence_type, gene_affected, cancer_type)
                 VALUES
-                    (:icgc_specimen_id, :chromosome, :chromosome_start, :chromosome_end, :mutation_type, :mutated_from_allele, :mutated_to_allele, :consequence_type, :gene_affected, :cancer_type)
+                    (:chromosome, :chromosome_start, :chromosome_end, :mutation_type, :mutated_from_allele, :mutated_to_allele, :consequence_type, :gene_affected, :cancer_type)
             ");
 
             $stmt->execute([
-                ':icgc_specimen_id' => $clean['icgc_specimen_id'],
                 ':chromosome' => $clean['chromosome'],
                 ':chromosome_start' => $clean['chromosome_start'],
                 ':chromosome_end' => $clean['chromosome_end'],
@@ -100,14 +91,6 @@ class Mutation
 
             $mutationId = (int)$this->pdo->lastInsertId();
 
-            if (isset($clean['patient_id']) && $clean['patient_id']) {
-                $stmt = $this->pdo->prepare("INSERT INTO patient_mutation (patient_id, mutation_id) VALUES (:patient_id, :mutation_id)");
-                $stmt->execute([
-                    ':patient_id' => $clean['patient_id'],
-                    ':mutation_id' => $mutationId
-                ]);
-            }
-
             $this->pdo->commit();
             return $mutationId;
         } catch (Exception $e) {
@@ -120,14 +103,10 @@ class Mutation
     public function update(int $id, array $data): void
     {
         // merge incoming data with existing data
-        $existing = $this->search(["mutation_id" => $id]);
-
-        // Minor fix: search returns an array of rows, we need the first row
-        $existingRow = $existing[0] ?? [];
-
-        $merged = $existingRow ? array_intersect_key($existingRow, array_flip(self::FIELDS)) : [];
+        $existing = $this->find($id);
+        $merged = array_intersect_key($existing, array_flip(self::FIELDS));
         foreach (self::FIELDS as $field) {
-            if (array_key_exists($field, $data)) {
+            if (isset($field, $data)) {
                 $merged[$field] = $data[$field];
             }
         }
@@ -138,8 +117,7 @@ class Mutation
         // prepare query - ADDED patient_id and icgc_specimen_id
         $stmt = $this->pdo->prepare("
           UPDATE mutation
-          SET icgc_specimen_id = :icgc_specimen_id,
-              chromosome = :chromosome,
+          SET chromosome = :chromosome,
               chromosome_start = :chromosome_start,
               chromosome_end = :chromosome_end,
               mutation_type = :mutation_type,
@@ -153,7 +131,6 @@ class Mutation
 
         // execute query
         $stmt->execute([
-            ':icgc_specimen_id' => $clean['icgc_specimen_id'],
             ':chromosome' => $clean['chromosome'],
             ':chromosome_start' => $clean['chromosome_start'],
             ':chromosome_end' => $clean['chromosome_end'],
@@ -170,46 +147,51 @@ class Mutation
     // delete mutation
     public function delete(int $id): void
     {
-        // remove references from patient_mutation first to satisfy foreign key constraints
-        $this->pdo->beginTransaction();
-        try {
-            $stmt = $this->pdo->prepare("DELETE FROM patient_mutation WHERE mutation_id = ?");
-            $stmt->execute([$id]);
-
-            $stmt = $this->pdo->prepare("DELETE FROM mutation WHERE mutation_id = ?");
-            $stmt->execute([$id]);
-
-            $this->pdo->commit();
-        } catch (Exception $e) {
-            $this->pdo->rollBack();
-            throw $e;
-        }
+        $stmt = $this->pdo->prepare("DELETE FROM diagnostic WHERE diagnosis_id = ?");
+        $stmt->execute([$id]);
     }
 
     // link mutation to patient
-    public function linkPatient(int $patientId, int $mutationId): void
+    public function linkPatient(array $data): void
     {
-        // Check if link already exists to avoid duplicates
+        // validation: required
+        $required = [
+            'mutation_id',
+            'patient_id',
+        ];
+        Validator::required($data, $required);
+        // validation: id
+        $this->find($data['mutation_id']);
+        new Patient($this->pdo)->find($data['patient_id']);
+
+        // check if link already exists to avoid duplicates
         $check = $this->pdo->prepare("SELECT 1 FROM patient_mutation WHERE patient_id = ? AND mutation_id = ?");
-        $check->execute([$patientId, $mutationId]);
+        $check->execute([$data['patient_id'], $data['mutation_id']]);
         if ($check->fetch()) {
-            return; // Already linked
+            return;
         }
 
         $stmt = $this->pdo->prepare("INSERT INTO patient_mutation (patient_id, mutation_id) VALUES (:patient_id, :mutation_id)");
         $stmt->execute([
-            ':patient_id' => $patientId,
-            ':mutation_id' => $mutationId
+            ':patient_id' => $data['patient_id'],
+            ':mutation_id' => $data['mutation_id']
         ]);
     }
 
     // unlink mutation from patient
-    public function unlinkPatient(int $patientId, int $mutationId): void
+    public function unlinkPatient(array $data): void
     {
+        // validation: required
+        $required = [
+            'mutation_id',
+            'patient_id',
+        ];
+        Validator::required($data, $required);
+
         $stmt = $this->pdo->prepare("DELETE FROM patient_mutation WHERE patient_id = :patient_id AND mutation_id = :mutation_id");
         $stmt->execute([
-            ':patient_id' => $patientId,
-            ':mutation_id' => $mutationId
+            ':patient_id' => $data['patient_id'],
+            ':mutation_id' => $data['mutation_id']
         ]);
     }
 
@@ -243,5 +225,15 @@ class Mutation
         $stmt->execute($params);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // find mutation with ID
+    public function find($id): array
+    {
+        $rows = $this->search(["mutation_id" => $id]);
+        if (empty($rows)) {
+            throw new RuntimeException("Mutation with ID {$id} not found.");
+        }
+        return reset($rows);
     }
 }
