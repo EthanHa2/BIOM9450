@@ -6,23 +6,6 @@ class ClinicianController
 {
     public function __construct(private PDO $pdo) {}
 
-    private function json(int $status, array $body): void
-    {
-        http_response_code($status);
-        echo json_encode($body);
-        exit;
-    }
-
-    private function getJsonBody(): array
-    {
-        $raw = file_get_contents('php://input');
-        $data = json_decode($raw, true);
-        if (!is_array($data)) {
-            $this->json(400, ['error' => 'Invalid JSON body.']);
-        }
-        return $data;
-    }
-
     // entry point from API
     public function handle(?int $id, ?string $sub, ?string $method): void
     {
@@ -36,14 +19,14 @@ class ClinicianController
                     $this->create();  // create: POST /api/clinician
                     break;
                 default:
-                    json_response(405, ['error' => 'Method not allowed.']);
+                    json(405, ['error' => 'Method not allowed.']);
             }
         }
         // /api/clinician/{id}
         else {
             switch ($method) {
                 case 'GET':
-                    $this->getOne($id); // GET /api/clinician/{id}
+                    $this->find($id); // GET /api/clinician/{id}
                     break;
                 case 'PUT':
                     $this->update($id);  // update: PUT /api/clinician/{id}
@@ -52,34 +35,30 @@ class ClinicianController
                     $this->delete($id);  // delete: DELETE /api/clinician/{id}
                     break;
                 default:
-                    json_response(405, ['error' => 'Method not allowed.']);
+                    json(405, ['error' => 'Method not allowed.']);
             }
         }
     }
 
     // GET /api/clinician/{id}
-    private function getOne(int $id): void
+    private function find(int $id): void
     {
         $clinician = new Clinician($this->pdo);
-        $row = $clinician->find($id);
-        if (!$row) {
-            $this->json(404, ['error' => "Clinician with ID {$id} not found."]);
-        }
-
-        $this->json(200, [
+        $result = $clinician->find($id);
+        json(200, [
             'success' => true,
-            'data' => $row,
+            'data' => $result,
         ]);
     }
 
     // POST /api/clinician
     public function create(): void
     {
-        $data = $this->getJsonBody();
+        $data = getJsonBody();
         $patient = new Clinician($this->pdo);
         $newId = $patient->create($data);
 
-        $this->json(201, [
+        json(201, [
             'clinician_id' => $newId,
             'message' => 'Clinician created successfully.',
         ]);
@@ -88,12 +67,12 @@ class ClinicianController
     // PUT /api/clinician/{id}
     public function update(int $id): void
     {
-        $data = $this->getJsonBody();
+        $data = getJsonBody();
         $mutation = new Clinician($this->pdo);
 
         $mutation->update($id, $data);
 
-        $this->json(200, [
+        json(200, [
             'message' => "Clinician {$id} updated successfully.",
         ]);
     }
@@ -103,7 +82,7 @@ class ClinicianController
     {
         $patient = new Clinician($this->pdo);
         $patient->delete($id);
-        $this->json(200, ['message' => "Clinician {$id} deleted successfully."]);
+        json(200, ['message' => "Clinician {$id} deleted successfully."]);
     }
 
     // GET /api/clinician?first_name=...
@@ -119,6 +98,6 @@ class ClinicianController
             'specialty' => $_GET['specialty'] ?? null,
         ];
         $results = $clinician->search($filters);
-        $this->json(200, ['clinicians' => $results]);
+        json(200, ['clinicians' => $results]);
     }
 }

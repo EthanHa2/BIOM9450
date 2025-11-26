@@ -34,6 +34,8 @@ class Diagnostic
 
         // validation: dates
         // Temporarily skip strict date validation due to timezone issues.
+        // $dates = ['diagnosis_date'];
+        // Validator::date($data, $dates);
 
         // validation: patient_id & clinician_id
         $patientRepo = new Patient($this->pdo);
@@ -67,14 +69,14 @@ class Diagnostic
     {
         // validate & process data
         $clean = $this->processData($data);
-
+        // prepare query
         $stmt = $this->pdo->prepare("
           INSERT INTO diagnostic
             (patient_id, clinician_id, diagnosis_date, diagnosis_type, description, treatment)
           VALUES
             (:patient_id, :clinician_id, :diagnosis_date, :diagnosis_type, :description, :treatment)
         ");
-
+        // execute query
         $stmt->execute([
             ':patient_id' => $clean['patient_id'],
             ':clinician_id' => $clean['clinician_id'],
@@ -112,7 +114,6 @@ class Diagnostic
               treatment = :treatment
           WHERE diagnosis_id = :id
         ");
-
         // execute query
         $stmt->execute([
             ':patient_id' => $clean['patient_id'],
@@ -128,7 +129,9 @@ class Diagnostic
     // delete diagnostic
     public function delete(int $id): void
     {
+        // prepare query
         $stmt = $this->pdo->prepare("DELETE FROM diagnostic WHERE diagnosis_id = ?");
+        // execute query
         $stmt->execute([$id]);
     }
 
@@ -156,7 +159,9 @@ class Diagnostic
             }
         }
 
+        // prepare query
         $stmt = $this->pdo->prepare($sql);
+        // execute query
         $stmt->execute($params);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
