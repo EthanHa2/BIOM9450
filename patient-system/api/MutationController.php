@@ -6,23 +6,6 @@ final class MutationController
 {
     public function __construct(private PDO $pdo) {}
 
-    private function json(int $status, array $body): void
-    {
-        http_response_code($status);
-        echo json_encode($body);
-        exit;
-    }
-
-    private function getJsonBody(): array
-    {
-        $raw = file_get_contents('php://input');
-        $data = json_decode($raw, true);
-        if (!is_array($data)) {
-            $this->json(400, ['error' => 'Invalid JSON body.']);
-        }
-        return $data;
-    }
-
     // entry point from API
     public function handle(?int $id, ?string $sub, ?string $method): void
     {
@@ -80,17 +63,17 @@ final class MutationController
             'cancer_type'          => $_GET['cancer_type'] ?? null,
         ];
         $results = $mutation->search($filters);
-        $this->json(200, ['mutations' => $results]);
+        json(200, ['mutations' => $results]);
     }
 
     // POST /api/mutation
     public function create(): void
     {
-        $data = $this->getJsonBody();
+        $data = getJsonBody();
         $mutation = new Mutation($this->pdo);
         $newId = $mutation->create($data);
 
-        $this->json(201, [
+        json(201, [
             'mutation_id' => $newId,
             'message'     => 'Mutation created successfully.',
         ]);
@@ -99,12 +82,12 @@ final class MutationController
     // PUT /api/mutation/{id}
     public function update(int $id): void
     {
-        $data = $this->getJsonBody();
+        $data = getJsonBody();
         $mutation = new Mutation($this->pdo);
 
         $mutation->update($id, $data);
 
-        $this->json(200, [
+        json(200, [
             'message' => "Mutation {$id} updated successfully.",
         ]);
     }
@@ -114,25 +97,25 @@ final class MutationController
     {
         $mutation = new Mutation($this->pdo);
         $mutation->delete($id);
-        $this->json(200, ['message' => "Mutation {$id} deleted successfully."]);
+        json(200, ['message' => "Mutation {$id} deleted successfully."]);
     }
 
     // POST /api/mutation/link
     private function link(): void
     {
-        $data = $this->getJsonBody();
+        $data = getJsonBody();
         $mutation = new Mutation($this->pdo);
         $mutation->linkPatient($data);
-        $this->json(200, ['message' => 'Mutation linked to patient successfully.']);
+        json(200, ['message' => 'Mutation linked to patient successfully.']);
     }
 
     // POST /api/mutation/unlink
     private function unlink(): void
     {
-        $data = $this->getJsonBody();
+        $data = getJsonBody();
         $mutation = new Mutation($this->pdo);
         $mutation->unlinkPatient($data);
-        $this->json(200, ['message' => 'Mutation unlinked from patient successfully.']);
+        json(200, ['message' => 'Mutation unlinked from patient successfully.']);
     }
 
     /**
