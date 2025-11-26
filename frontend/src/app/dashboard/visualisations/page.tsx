@@ -54,6 +54,9 @@ export default function VisualisationsPage() {
   const [mutationType, setMutationType] = useState<string>("");
   const [cancerType, setCancerType] = useState<string>("");
 
+  // Limit how many bars we render for mutation chart (avoid massive overflow)
+  const mutationChartData = mutationData.slice(0, 15); // top 15 genes
+
   const buildCommonParams = () => {
     const params = new URLSearchParams();
     if (sex) params.append("sex", sex);
@@ -139,63 +142,66 @@ export default function VisualisationsPage() {
           </Button>
         </div>
 
-        {/* Filters */}
-        <Card shadow="sm" padding="lg" className="mb-6">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Sex filter */}
-            <div>
-              <p className="mb-2 font-medium">Sex</p>
-              <Select
-                placeholder="All"
-                data={[
-                  { value: "Male", label: "Male" },
-                  { value: "Female", label: "Female" },
-                  { value: "Other", label: "Other" },
-                ]}
-                value={sex}
-                onChange={setSex}
-                clearable
-              />
-            </div>
+        {/* Filters (sticky header) */}
+        <div className="sticky top-0 z-20 bg-white pb-4">
+          <Card shadow="sm" padding="lg" className="mb-2">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              {/* Sex filter */}
+              <div>
+                <p className="mb-2 font-medium">Sex</p>
+                <Select
+                  placeholder="All"
+                  data={[
+                    { value: "Male", label: "Male" },
+                    { value: "Female", label: "Female" },
+                    { value: "Other", label: "Other" },
+                  ]}
+                  value={sex}
+                  onChange={setSex}
+                  clearable
+                />
+              </div>
 
-            {/* Age range */}
-            <div className="lg:col-span-2">
-              <p className="mb-2 font-medium">
-                Age range ({ageRange[0]} – {ageRange[1]} years)
-              </p>
-              <RangeSlider
-                min={0}
-                max={100}
-                value={ageRange}
-                onChange={(value) => setAgeRange(value as [number, number])}
-                marks={[
-                  { value: 0, label: "0" },
-                  { value: 20, label: "20" },
-                  { value: 40, label: "40" },
-                  { value: 60, label: "60" },
-                  { value: 80, label: "80" },
-                ]}
-              />
-            </div>
+              {/* Age range */}
+              <div className="lg:col-span-2">
+                <p className="mb-2 font-medium">
+                  Age range ({ageRange[0]} – {ageRange[1]} years)
+                </p>
+                <RangeSlider
+                  min={0}
+                  max={100}
+                  value={ageRange}
+                  onChange={(value) => setAgeRange(value as [number, number])}
+                  marks={[
+                    { value: 0, label: "0" },
+                    { value: 20, label: "20" },
+                    { value: 40, label: "40" },
+                    { value: 60, label: "60" },
+                    { value: 80, label: "80" },
+                  ]}
+                />
+              </div>
 
-            {/* Mutation filters */}
-            <div className="space-y-3">
-              <p className="mb-1 font-medium">Mutation filters</p>
-              <TextInput
-                label="Mutation type"
-                placeholder="e.g. Missense, Nonsense"
-                value={mutationType}
-                onChange={(e) => setMutationType(e.currentTarget.value)}
-              />
-              <TextInput
-                label="Cancer type"
-                placeholder="e.g. Breast, Colorectal"
-                value={cancerType}
-                onChange={(e) => setCancerType(e.currentTarget.value)}
-              />
+              {/* Mutation filters */}
+              <div className="space-y-3">
+                <p className="mb-1 font-medium">Mutation filters</p>
+                <TextInput
+                  label="Mutation type"
+                  placeholder="e.g. Missense, Nonsense"
+                  value={mutationType}
+                  onChange={(e) => setMutationType(e.currentTarget.value)}
+                />
+                <TextInput
+                  label="Cancer type"
+                  placeholder="e.g. Breast, Colorectal"
+                  value={cancerType}
+                  onChange={(e) => setCancerType(e.currentTarget.value)}
+                />
+              </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+        </div>
+
 
         {/* Charts */}
         {loading ? (
@@ -266,7 +272,7 @@ export default function VisualisationsPage() {
               ) : (
                 <div className="w-full h-80">
                   <ResponsiveContainer>
-                    <BarChart data={mutationData}>
+                    <BarChart data={mutationChartData}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="gene" />
                       <YAxis />
