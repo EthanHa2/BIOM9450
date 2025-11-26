@@ -84,7 +84,6 @@ CREATE TABLE reports (
     created_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_reports_patient (patient_id, created_date),
     CONSTRAINT fk_reports_patient FOREIGN KEY (patient_id) REFERENCES patient(patient_id) ON UPDATE CASCADE ON DELETE CASCADE
-    SET NULL
 ) ENGINE = InnoDB;
 CREATE TABLE category (
     category_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -254,7 +253,7 @@ VALUES (
 -- 3) import CSV (run if file exists and LOCAL is allowed)
 -- 3) IMPORT CSV INTO mutation
 -- (update the path to wherever the file is on your machine)
-LOAD DATA LOCAL INFILE '/Users/sarina/Downloads/BIOM9450/BIOM9450/Mutation_original.csv'
+LOAD DATA LOCAL INFILE 'C:/Users/sunny/Desktop/Uni/BIOM9450/BIOM9450/Mutation_original.csv'
 INTO TABLE mutation
 FIELDS TERMINATED BY ','
 LINES TERMINATED BY '\n'
