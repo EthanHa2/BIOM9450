@@ -458,18 +458,6 @@ export default function DashboardPage() {
             ? p.phenotypes.join("; ")
             : "None recorded";
 
-        const mutationsStr =
-          p.mutations && p.mutations.length > 0
-            ? p.mutations
-                .map((m) => {
-                  const gene = m.gene_affected || "N/A";
-                  const type = m.mutation_type || "N/A";
-                  const cons = m.consequence_type || "N/A";
-                  return `${gene} (${type}, ${cons})`;
-                })
-                .join(" | ")
-            : "None recorded";
-
         // Section heading
         doc.setFontSize(13);
         doc.setFont("helvetica", "bold");
@@ -487,8 +475,7 @@ export default function DashboardPage() {
 
         const addWrappedText = (label: string, value: string) => {
           const labelText = `${label}: `;
-          const labelWidth =
-            doc.getTextWidth(labelText) + 1; // small spacing after label
+          const labelWidth = doc.getTextWidth(labelText) + 1; // small spacing after label
           const maxWidth = pageWidth - marginLeft * 2;
 
           const lines = doc.splitTextToSize(value || "", maxWidth - labelWidth);
@@ -514,7 +501,7 @@ export default function DashboardPage() {
         addWrappedText("Diagnosis", p.diagnosis || "N/A");
         addWrappedText("Treatment", p.treatment || "N/A");
         addWrappedText("Phenotypes", phenotypesStr);
-        addWrappedText("Mutations", mutationsStr);
+        // Mutations removed from summary report
 
         y += lineHeight; // extra spacing between patients
       });

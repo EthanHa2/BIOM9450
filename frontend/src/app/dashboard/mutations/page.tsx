@@ -546,9 +546,6 @@ export default function MutationsPage() {
             <Button variant="filled" size="md" radius="md" onClick={handleAdd}>
               Add Mutation
             </Button>
-            <Button variant="filled" size="md" radius="md">
-              Download Report
-            </Button>
           </div>
         </div>
 

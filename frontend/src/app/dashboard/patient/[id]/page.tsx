@@ -253,7 +253,10 @@ export default function PatientDetailsPage() {
           // Convert Date back to string format YYYY-MM-DD for backend/state compatibility
           val = value.toLocaleDateString("en-CA"); // en-CA outputs YYYY-MM-DD
         }
-        setPatient({ ...patient, [field]: val as any });
+        setPatient({
+          ...patient,
+          [field]: val as Patient[keyof Patient],
+        });
       }
     };
 
@@ -809,53 +812,6 @@ export default function PatientDetailsPage() {
       }
 
       y += lineHeight;
-
-      // --- Mutations Section ---
-      doc.setFontSize(13);
-      doc.setFont("helvetica", "bold");
-      if (y > pageHeight - 20) {
-        doc.addPage();
-        y = marginTop;
-      }
-      doc.text("Mutations", marginLeft, y);
-      y += lineHeight;
-
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "normal");
-
-      if (mutations.length === 0) {
-        addWrappedText("Mutations", "No mutations recorded.");
-      } else {
-        mutations.forEach((m, idx) => {
-          if (y > pageHeight - 40) {
-            doc.addPage();
-            y = marginTop;
-          }
-
-          doc.setFont("helvetica", "bold");
-          doc.text(`• Mutation #${idx + 1}`, marginLeft, y);
-          y += lineHeight;
-          doc.setFont("helvetica", "normal");
-
-          addWrappedText("ICGC Specimen ID", m.icgc_specimen_id || "N/A");
-          addWrappedText(
-            "Location",
-            `Chr ${m.chromosome} : ${m.chromosome_start} - ${m.chromosome_end}`
-          );
-          addWrappedText("Mutation Type", formatString(m.mutation_type));
-          addWrappedText(
-            "Alleles",
-            `${m.mutated_from_allele} → ${m.mutated_to_allele}`
-          );
-          addWrappedText(
-            "Consequence",
-            formatString(m.consequence_type) || "N/A"
-          );
-          addWrappedText("Gene Affected", m.gene_affected || "N/A");
-          addWrappedText("Cancer Type", formatString(m.cancer_type) || "N/A");
-          y += lineHeight / 2;
-        });
-      }
 
       const fileDate = new Date().toISOString().slice(0, 10);
       const safeName = `${patient.first_name}_${patient.last_name}`
