@@ -98,7 +98,7 @@ export function MutationFilterModal({
   onClose,
   onApply,
 }: MutationFilterModalProps) {
-  const [filters, setFilters] = useState<MutationFilterValues>(initialFilters);
+  const [filters, setFilters] = useState<MutationFilterValues>(initialFilters); // keep modal edits local until user confirms
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const handleClear = () => {

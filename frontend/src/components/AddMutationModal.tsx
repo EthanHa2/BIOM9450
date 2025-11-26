@@ -87,6 +87,7 @@ export function AddMutationModal({
   const PAGE_SIZE = 50;
 
   useEffect(() => {
+    // when the modal opens, hydrate state and clear previous search context
     if (opened) {
       setFormData(initialData || defaultData);
       setPredictionInfo(null);
@@ -106,6 +107,7 @@ export function AddMutationModal({
   }, [opened, initialData, searchEnabled]);
 
   const handleSearch = async () => {
+    // avoid network calls unless the user supplied at least one filter
     // Only search if at least one filter is present
     const { geneAffected, icgcSpecimenId, mutationId, cancerType, chromosome } =
       searchFilters;

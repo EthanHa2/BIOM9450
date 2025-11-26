@@ -7,6 +7,7 @@ import logo from "@/assets/logo.png";
 
 export function Navbar() {
   return (
+    // simple marketing nav for the public routes
     <div className="fixed z-10 flex w-full items-center justify-between bg-background px-4 py-4 shadow-sm">
       <div className="flex items-center gap-2">
         <Image src={logo} alt="Logo" width={50} height={50} />

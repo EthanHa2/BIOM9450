@@ -203,6 +203,7 @@ export default function PatientDetailsPage() {
   useEffect(() => {
     if (!id) return;
 
+    // hydrate patient plus related tables when viewing the record
     async function fetchData() {
       try {
         setLoading(true);
@@ -261,6 +262,7 @@ export default function PatientDetailsPage() {
     };
 
   const handleSaveInfo = async () => {
+    // send shallow updates for the patient identity block
     if (!patient) return;
 
     try {
@@ -431,6 +433,7 @@ export default function PatientDetailsPage() {
   };
 
   const handleSavePhenotype = async (data: PhenotypeFormData) => {
+    // reuse same modal for edits, mirroring diagnostic behaviour
     if (!patient || !user) return;
 
     try {
@@ -634,6 +637,7 @@ export default function PatientDetailsPage() {
   };
 
   const handleDownloadReport = () => {
+    // produce a clinician-friendly pdf for printing or upload
     if (!patient) return;
 
     try {

@@ -67,6 +67,7 @@ export function SearchFilterModal({
   const [phenotypeOptions, setPhenotypeOptions] = useState<string[]>([]);
 
   useEffect(() => {
+    // pre-populate select options so filtering feels instant
     async function fetchOptions() {
       try {
         // Fetch Diagnostics & Treatments

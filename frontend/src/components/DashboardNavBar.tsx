@@ -69,6 +69,7 @@ export function DashboardNavBar() {
   const { logout } = useAuth();
 
   const links = navItems.map((item) => (
+    // keep nav rendering declarative so we can grow the menu easily
     <NavbarLink
       {...item}
       key={item.label}

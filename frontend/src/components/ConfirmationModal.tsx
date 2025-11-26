@@ -22,7 +22,7 @@ export function ConfirmationModal({
   confirmLabel = "Confirm",
   confirmColor = "red",
 }: ConfirmationModalProps) {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // prevent double submits while awaiting parent action
 
   const handleConfirm = async () => {
     try {

@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  Button,
-  Loader,
-  TextInput,
-  Divider,
-} from "@mantine/core";
+import { Button, Loader, TextInput, Divider } from "@mantine/core";
 import { useState, useEffect } from "react";
 import { notifications } from "@mantine/notifications";
 
@@ -71,7 +66,7 @@ export default function ProfilePage() {
     setProfile((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Load clinician profile from backend
+  // load clinician metadata once we know who is logged in
   const fetchProfile = async () => {
     if (!user) {
       setLoading(false);
@@ -80,13 +75,10 @@ export default function ProfilePage() {
 
     try {
       setLoading(true);
-      const res = await fetch(
-        `${API_BASE}/clinician/${user.clinician_id}`,
-        {
-          method: "GET",
-          credentials: "include",
-        }
-      );
+      const res = await fetch(`${API_BASE}/clinician/${user.clinician_id}`, {
+        method: "GET",
+        credentials: "include",
+      });
 
       const raw = await res.text();
       const json = JSON.parse(raw);
@@ -122,10 +114,12 @@ export default function ProfilePage() {
   }, [user]);
 
   const handleEdit = () => {
+    // stash current values so cancel can revert cleanly
     setBackupProfile(profile);
     setIsEditing(true);
   };
 
+  // push profile edits back to php after light client validation
   const handleSave = async () => {
     if (!user) return;
 
@@ -145,22 +139,19 @@ export default function ProfilePage() {
     try {
       setLoading(true);
 
-      const res = await fetch(
-        `${API_BASE}/clinician/${user.clinician_id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify(payload),
-        }
-      );
+      const res = await fetch(`${API_BASE}/clinician/${user.clinician_id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
 
       const raw = await res.text();
-      const json = JSON.parse(raw);
+      const json = raw ? JSON.parse(raw) : {};
 
-      if (!json.success) {
+      if (!res.ok) {
         throw new Error(json.message || "Failed to update profile.");
       }
 
@@ -177,8 +168,7 @@ export default function ProfilePage() {
       console.error("Error updating profile:", err);
       notifications.show({
         title: "Update Failed",
-        message:
-          err instanceof Error ? err.message : "Could not save profile.",
+        message: err instanceof Error ? err.message : "Could not save profile.",
         color: "red",
       });
     } finally {
@@ -187,6 +177,7 @@ export default function ProfilePage() {
   };
 
   const handleCancel = () => {
+    // revert edits if the user bails from the form
     if (backupProfile) {
       setProfile(backupProfile);
     }

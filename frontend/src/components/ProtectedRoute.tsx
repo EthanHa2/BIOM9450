@@ -10,6 +10,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
+    // bounce unauthenticated users back to the login page
     if (!isLoading && !user) {
       router.push("/login");
     }

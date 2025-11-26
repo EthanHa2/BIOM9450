@@ -143,6 +143,7 @@ export default function DashboardPage() {
   const router = useRouter();
 
   useEffect(() => {
+    // load seed data plus related tables before rendering cards
     async function fetchData() {
       try {
         // fetch all patients
@@ -205,6 +206,7 @@ export default function DashboardPage() {
   }, []);
 
   const handleApplyFilters = (filters: FilterValues) => {
+    // everything filters client-side so we can pivot instantly
     const filtered = allPatients.filter((patient) => {
       // ID Filter
       if (
@@ -297,6 +299,7 @@ export default function DashboardPage() {
   };
 
   const handleCreatePatient = async (data: PatientFormData) => {
+    // normalise payload before posting through the php rewrite
     const dobDate =
       data.dob instanceof Date
         ? data.dob
@@ -404,6 +407,7 @@ export default function DashboardPage() {
   }
 
   const handleDownloadReport = () => {
+    // export the currently filtered list to pdf via jsPDF
     if (filteredPatients.length === 0) {
       notifications.show({
         title: "No data to export",

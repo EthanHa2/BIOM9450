@@ -98,6 +98,9 @@ export default function MutationsPage() {
   const [mutations, setMutations] = useState<MutationRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState<"table" | "graphs" | "ml">(
+    "table"
+  );
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filters, setFilters] = useState<MutationFilterValues>({
@@ -134,6 +137,7 @@ export default function MutationsPage() {
   const [loadingChromDist, setLoadingChromDist] = useState(false);
   const [chromDistError, setChromDistError] = useState<string | null>(null);
 
+  // fetch the full mutation dataset for the table view
   const fetchMutations = async () => {
     setLoading(true);
     setError(null);
@@ -161,6 +165,7 @@ export default function MutationsPage() {
     }
   };
 
+  // load the gene frequency summary for the hotspots chart
   const fetchGeneHotspots = async () => {
     setLoadingHotspots(true);
     setHotspotError(null);
@@ -186,6 +191,7 @@ export default function MutationsPage() {
     }
   };
 
+  // load chromosome distribution stats for the second chart
   const fetchChromosomeDistribution = async () => {
     setLoadingChromDist(true);
     setChromDistError(null);
@@ -214,6 +220,7 @@ export default function MutationsPage() {
     }
   };
 
+  // guard mutation delete with an extra confirmation step
   const openDeleteModal = (mutationId: number) => {
     setConfirmMessage(
       "Are you sure you want to delete this mutation? This action cannot be undone."
@@ -239,6 +246,7 @@ export default function MutationsPage() {
     setConfirmModalOpen(true);
   };
 
+  // handle modal submissions, ignoring the patient-link pathway
   const handleSaveMutation = async (data: MutationFormData | number) => {
     if (typeof data === "number") {
       return;
@@ -337,6 +345,7 @@ export default function MutationsPage() {
   }, []);
 
   // Apply filters
+  // run all filters client-side so pagination remains instant
   const filteredMutations = mutations.filter((m) => {
     if (
       filters.cancerType &&
@@ -516,41 +525,48 @@ export default function MutationsPage() {
             <h1 className="text-4xl font-bold text-slate-900">
               Mutations Overview
             </h1>
-            <p className="text-slate-600 mt-1">
-              View and filter imported mutation records from the CSV dataset.
-            </p>
+            {activeTab === "table" && (
+              <p className="text-slate-600 mt-1">
+                View and filter imported mutation records from the CSV dataset.
+              </p>
+            )}
           </div>
-          <Button
-            variant="outline"
-            size="md"
-            radius="md"
-            onClick={fetchMutations}
-          >
-            Refresh
-          </Button>
         </div>
 
         {/* Controls Row */}
-        <div className="flex justify-between items-center mb-8">
-          <Button
-            variant="filled"
-            size="md"
-            radius="md"
-            onClick={() => setIsFilterOpen(true)}
-            leftSection={<IconSearch size={16} />}
-          >
-            Search &amp; Filter
-          </Button>
-
-          <div className="flex gap-4">
-            <Button variant="filled" size="md" radius="md" onClick={handleAdd}>
-              Add Mutation
+        {activeTab === "table" && (
+          <div className="flex justify-between items-center mb-8">
+            <Button
+              variant="filled"
+              size="md"
+              radius="md"
+              onClick={() => setIsFilterOpen(true)}
+              leftSection={<IconSearch size={16} />}
+            >
+              Search &amp; Filter
             </Button>
+
+            <div className="flex gap-4">
+              <Button
+                variant="filled"
+                size="md"
+                radius="md"
+                onClick={handleAdd}
+              >
+                Add Mutation
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Tabs for Table vs Graphs */}
-        <Tabs defaultValue="table" keepMounted={false}>
+        <Tabs
+          value={activeTab}
+          onChange={(val) =>
+            setActiveTab((val as "table" | "graphs" | "ml") || "table")
+          }
+          keepMounted={false}
+        >
           <Tabs.List>
             <Tabs.Tab value="table">Mutation Table</Tabs.Tab>
             <Tabs.Tab value="graphs">Data Visualisation Graphs</Tabs.Tab>
