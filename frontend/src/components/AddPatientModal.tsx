@@ -57,6 +57,7 @@ export function AddPatientModal({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    // reset the form whenever the modal toggles or gains new defaults
     if (opened) {
       setFormData(initialData || defaultData);
     }
@@ -70,6 +71,7 @@ export function AddPatientModal({
     !!formData.phone.trim();
 
   const handleSubmit = async () => {
+    // hand back to parent, letting it surface notifications
     try {
       setSubmitting(true);
       await onApply(formData);

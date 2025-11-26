@@ -44,12 +44,14 @@ export function AddDiagnosticModal({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    // refresh the form when opening or when editing a different record
     if (opened) {
       setFormData(initialData || defaultData);
     }
   }, [opened, initialData]);
 
   const handleSubmit = async () => {
+    // keep submission flow centralised in parent components
     try {
       setSubmitting(true);
       await onApply(formData);

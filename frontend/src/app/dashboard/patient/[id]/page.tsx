@@ -203,6 +203,7 @@ export default function PatientDetailsPage() {
   useEffect(() => {
     if (!id) return;
 
+    // hydrate patient plus related tables when viewing the record
     async function fetchData() {
       try {
         setLoading(true);
@@ -219,17 +220,17 @@ export default function PatientDetailsPage() {
           setPatient(null);
         }
 
-        // Fetch Diagnostics
+        // Fetch Diagnostics for timeline + table
         const dRes = await fetch(`${API_BASE_URL}/diagnostic?patient_id=${id}`);
         const dData = await dRes.json();
         setDiagnostics(dData.diagnostics || []);
 
-        // Fetch Phenotypes
+        // Fetch Phenotypes (used both in table + pdf export)
         const phRes = await fetch(`${API_BASE_URL}/phenotype?patient_id=${id}`);
         const phData = await phRes.json();
         setPhenotypes(phData.phenotypes || []);
 
-        // Fetch Mutations
+        // Fetch Mutations (for the bottom table + unlink flow)
         const mRes = await fetch(`${API_BASE_URL}/patient/${id}/mutations`);
         const mData = await mRes.json();
         setMutations(mData.mutations || []);
@@ -253,11 +254,19 @@ export default function PatientDetailsPage() {
           // Convert Date back to string format YYYY-MM-DD for backend/state compatibility
           val = value.toLocaleDateString("en-CA"); // en-CA outputs YYYY-MM-DD
         }
-        setPatient({ ...patient, [field]: val as any });
+        if (field === "phone" && typeof val === "string") {
+          // guard against letters so php validator doesn't reject the update
+          val = val.replace(/\D/g, "");
+        }
+        setPatient({
+          ...patient,
+          [field]: val as Patient[keyof Patient],
+        });
       }
     };
 
   const handleSaveInfo = async () => {
+    // send shallow updates for the patient identity block
     if (!patient) return;
 
     try {
@@ -356,6 +365,7 @@ export default function PatientDetailsPage() {
     if (!patient || !user) return;
 
     try {
+      // convert any incoming date format into the yyyy-mm-dd php expects
       const dateObj =
         data.diagnosis_date instanceof Date
           ? data.diagnosis_date
@@ -400,6 +410,7 @@ export default function PatientDetailsPage() {
       const result = await res.json();
 
       if (editingDiagnostic) {
+        // inline update keeps table snappy without re-fetch
         const targetId = editingDiagnostic.diagnosis_id;
         setDiagnostics((prev) =>
           prev.map((d) =>
@@ -428,9 +439,11 @@ export default function PatientDetailsPage() {
   };
 
   const handleSavePhenotype = async (data: PhenotypeFormData) => {
+    // reuse same modal for edits, mirroring diagnostic behaviour
     if (!patient || !user) return;
 
     try {
+      // guard against null/strings so mysql always sees a valid date
       const dateObj =
         data.recorded_date instanceof Date
           ? data.recorded_date
@@ -472,6 +485,7 @@ export default function PatientDetailsPage() {
       const result = await res.json();
 
       if (editingPhenotype) {
+        // merge update locally so users see changes straight away
         const targetId = editingPhenotype.phenotype_id;
         setPhenotypes((prev) =>
           prev.map((p) =>
@@ -522,7 +536,7 @@ export default function PatientDetailsPage() {
           `${API_BASE_URL}/patient/${patient.patient_id}/mutations`
         );
         const mData = await mRes.json();
-        setMutations(mData.mutations || []);
+        setMutations(mData.mutations || []); // ensures table reflects the new linkage straight away
         return;
       }
 
@@ -545,6 +559,7 @@ export default function PatientDetailsPage() {
           }
         );
       } else {
+        // new mutation created directly from the patient detail form
         res = await fetch(`${API_BASE_URL}/mutation`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -571,6 +586,7 @@ export default function PatientDetailsPage() {
       } else {
         const newMutationId = result.mutation_id || result.id;
 
+        // mirror backend workflow: create first, then link through junction table
         const linkRes = await fetch(`${API_BASE_URL}/mutation/link`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -599,6 +615,7 @@ export default function PatientDetailsPage() {
   };
 
   const handleUnlinkMutation = async (mutationId: number) => {
+    // allows clinicians to detach mistakenly linked records without deleting
     if (!patient) return;
     try {
       const res = await fetch(`${API_BASE_URL}/mutation/unlink`, {
@@ -631,6 +648,7 @@ export default function PatientDetailsPage() {
   };
 
   const handleDownloadReport = () => {
+    // produce a clinician-friendly pdf for printing or upload
     if (!patient) return;
 
     try {
@@ -809,53 +827,6 @@ export default function PatientDetailsPage() {
       }
 
       y += lineHeight;
-
-      // --- Mutations Section ---
-      doc.setFontSize(13);
-      doc.setFont("helvetica", "bold");
-      if (y > pageHeight - 20) {
-        doc.addPage();
-        y = marginTop;
-      }
-      doc.text("Mutations", marginLeft, y);
-      y += lineHeight;
-
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "normal");
-
-      if (mutations.length === 0) {
-        addWrappedText("Mutations", "No mutations recorded.");
-      } else {
-        mutations.forEach((m, idx) => {
-          if (y > pageHeight - 40) {
-            doc.addPage();
-            y = marginTop;
-          }
-
-          doc.setFont("helvetica", "bold");
-          doc.text(`• Mutation #${idx + 1}`, marginLeft, y);
-          y += lineHeight;
-          doc.setFont("helvetica", "normal");
-
-          addWrappedText("ICGC Specimen ID", m.icgc_specimen_id || "N/A");
-          addWrappedText(
-            "Location",
-            `Chr ${m.chromosome} : ${m.chromosome_start} - ${m.chromosome_end}`
-          );
-          addWrappedText("Mutation Type", formatString(m.mutation_type));
-          addWrappedText(
-            "Alleles",
-            `${m.mutated_from_allele} → ${m.mutated_to_allele}`
-          );
-          addWrappedText(
-            "Consequence",
-            formatString(m.consequence_type) || "N/A"
-          );
-          addWrappedText("Gene Affected", m.gene_affected || "N/A");
-          addWrappedText("Cancer Type", formatString(m.cancer_type) || "N/A");
-          y += lineHeight / 2;
-        });
-      }
 
       const fileDate = new Date().toISOString().slice(0, 10);
       const safeName = `${patient.first_name}_${patient.last_name}`

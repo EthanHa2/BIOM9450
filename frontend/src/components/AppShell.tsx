@@ -4,7 +4,7 @@ import { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
 
-const NAVBARLESS_PREFIXES = ["/dashboard"];
+const NAVBARLESS_PREFIXES = ["/dashboard"]; // dashboard pages renders their own navbar
 
 interface AppShellProps {
   children: ReactNode;
@@ -16,7 +16,7 @@ function shouldHideNavbar(pathname: string): boolean {
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
-  const hideNavbar = shouldHideNavbar(pathname);
+  const hideNavbar = shouldHideNavbar(pathname); // avoid double nav when already inside dashboard
 
   return (
     <div className="min-h-screen">
@@ -25,4 +25,3 @@ export function AppShell({ children }: AppShellProps) {
     </div>
   );
 }
-

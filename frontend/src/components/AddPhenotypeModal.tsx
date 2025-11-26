@@ -32,12 +32,14 @@ export function AddPhenotypeModal({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    // clear or prefill the form each time the modal opens
     if (opened) {
       setFormData(initialData || defaultData);
     }
   }, [opened, initialData]);
 
   const handleSubmit = async () => {
+    // parent handles notifications, we only manage spinners
     try {
       setSubmitting(true);
       await onApply(formData);
