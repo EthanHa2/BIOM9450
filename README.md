@@ -1,6 +1,8 @@
 # BIOM9450
 BIO9450 Major Project: Patient Management and Diagnostic Reporting System Ethan, Yvonne, Sunny, Sarina, Anish
 
+After cloning this respository, run `cd BIOM9450`
+
 # Machine Learning Instructions
 To get the machine learning model ready, follow the instructions below. First head to the machine_learning directory and create a python virtual environment.
 
@@ -26,11 +28,20 @@ python main.py
 ```
 
 # Instructions
-## Start frontend localhost
+## Start frontend localhost for development
 ```
 cd frontend
 npm install
 npm run dev
+
+```
+
+## Start frontend localhost for production build
+```
+cd frontend
+npm install
+npm run build
+npm run start
 
 ```
 
