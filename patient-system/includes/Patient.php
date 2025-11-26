@@ -90,7 +90,7 @@ class Patient
         $existing = $this->find($id);
         $merged = array_intersect_key($existing, array_flip(self::FIELDS));
         foreach (self::FIELDS as $field) {
-            if (isset($field, $data)) {
+            if (isset($data[$field])) {
                 $merged[$field] = $data[$field];
             }
         }

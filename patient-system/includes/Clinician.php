@@ -64,11 +64,11 @@ class Clinician
         ");
         // execute query
         $stmt->execute([
-            ':first_name' => $clean['first_name'],
-            ':last_name'  => $clean['last_name'],
-            ':email'      => $clean['email'],
-            ':phone'      => $clean['phone'],
-            ':specialty'  => $clean['specialty'],
+            ':first_name' => $clean['first_name'] ?? null,
+            ':last_name'  => $clean['last_name'] ?? null,
+            ':email'      => $clean['email'] ?? null,
+            ':phone'      => $clean['phone'] ?? null,
+            ':specialty'  => $clean['specialty'] ?? null,
         ]);
         return (int) $this->pdo->lastInsertId();
     }
@@ -80,7 +80,7 @@ class Clinician
         $existing = $this->find($id);
         $merged = array_intersect_key($existing, array_flip(self::FIELDS));
         foreach (self::FIELDS as $field) {
-            if (isset($field, $data)) {
+            if (isset($data[$field])) {
                 $merged[$field] = $data[$field];
             }
         }
@@ -100,11 +100,11 @@ class Clinician
         ");
         // execute query
         $stmt->execute([
-            ':first_name' => $clean['first_name'],
-            ':last_name' => $clean['last_name'],
-            ':email' => $clean['email'],
-            ':phone' => $clean['phone'],
-            ':specialty' => $clean['specialty'],
+            ':first_name' => $clean['first_name'] ?? null,
+            ':last_name' => $clean['last_name'] ?? null,
+            ':email' => $clean['email'] ?? null,
+            ':phone' => $clean['phone'] ?? null,
+            ':specialty' => $clean['specialty'] ?? null,
             ':id' => $id,
         ]);
     }
