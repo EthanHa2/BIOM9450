@@ -129,6 +129,19 @@ export default function ProfilePage() {
   const handleSave = async () => {
     if (!user) return;
 
+    const sanitizedPhone = profile.phone.replace(/\D/g, "");
+
+    if (!sanitizedPhone) {
+      notifications.show({
+        title: "Invalid phone",
+        message: "Phone numbers must contain digits only.",
+        color: "red",
+      });
+      return;
+    }
+
+    const payload = { ...profile, phone: sanitizedPhone };
+
     try {
       setLoading(true);
 
@@ -140,7 +153,7 @@ export default function ProfilePage() {
             "Content-Type": "application/json",
           },
           credentials: "include",
-          body: JSON.stringify(profile),
+          body: JSON.stringify(payload),
         }
       );
 
@@ -157,7 +170,8 @@ export default function ProfilePage() {
         color: "green",
       });
 
-      setBackupProfile(profile);
+      setProfile(payload);
+      setBackupProfile(payload);
       setIsEditing(false);
     } catch (err) {
       console.error("Error updating profile:", err);

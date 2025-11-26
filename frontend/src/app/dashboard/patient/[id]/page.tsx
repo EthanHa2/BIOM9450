@@ -1226,13 +1226,14 @@ export default function PatientDetailsPage() {
         />
 
         {/* Floating Back Button */}
-        <Affix position={{ bottom: 40, right: 40 }}>
+        <Affix position={{ bottom: 40, left: 120 }}>
           <Transition transition="slide-up" mounted={true}>
             {(transitionStyles) => (
               <Button
                 leftSection={<IconArrowLeft size={20} />}
                 size="md"
                 radius="xl"
+                color="secondary"
                 className="shadow-md"
                 style={transitionStyles}
                 onClick={() => router.push("/dashboard")}

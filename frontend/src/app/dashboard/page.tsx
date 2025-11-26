@@ -3,6 +3,8 @@
 import { Button, Badge, Loader } from "@mantine/core";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { notifications } from "@mantine/notifications";
 
 import { DashboardNavBar } from "@/components/DashboardNavBar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -11,8 +13,9 @@ import {
   FilterValues,
 } from "@/components/SearchFilterModal";
 import { IconSearch, IconUpload, IconDownload } from "@tabler/icons-react";
+import { AddPatientModal, PatientFormData } from "@/components/AddPatientModal";
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 6;
 const MAX_VISIBLE_PAGES = 5;
 
 interface Patient {
@@ -133,6 +136,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isAddPatientOpen, setIsAddPatientOpen] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     async function fetchData() {
@@ -289,6 +294,83 @@ export default function DashboardPage() {
     setCurrentPage(1);
   };
 
+  const handleCreatePatient = async (data: PatientFormData) => {
+    const dobDate =
+      data.dob instanceof Date
+        ? data.dob
+        : typeof data.dob === "string" && data.dob
+        ? new Date(data.dob)
+        : null;
+    const dob = dobDate ? dobDate.toLocaleDateString("en-CA") : null;
+
+    if (!dob) {
+      notifications.show({
+        title: "Date of birth required",
+        message: "Please select a valid date of birth.",
+        color: "red",
+      });
+      throw new Error("Date of birth required");
+    }
+
+    const sanitizedPhone = data.phone.replace(/\D/g, "");
+
+    if (!sanitizedPhone) {
+      notifications.show({
+        title: "Phone required",
+        message: "Please enter digits only for the phone number.",
+        color: "red",
+      });
+      throw new Error("Phone required");
+    }
+
+    const payload = {
+      first_name: data.first_name.trim(),
+      last_name: data.last_name.trim(),
+      dob,
+      sex: data.sex,
+      phone: sanitizedPhone,
+      address: data.address.trim() || null,
+      icgc_specimen_id: data.icgc_specimen_id.trim() || null,
+      photo: null,
+    };
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/patient`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        throw new Error(errorBody.error || "Failed to create patient.");
+      }
+
+      const result = await response.json();
+      const newPatientId = result.patient_id || result.id;
+
+      if (!newPatientId) {
+        throw new Error("Patient ID missing from response.");
+      }
+
+      notifications.show({
+        title: "Patient created",
+        message: `Patient ${payload.first_name} ${payload.last_name} created successfully.`,
+        color: "green",
+      });
+
+      router.push(`/dashboard/patient/${newPatientId}`);
+    } catch (error) {
+      notifications.show({
+        title: "Failed to create patient",
+        message:
+          error instanceof Error ? error.message : "Please try again later.",
+        color: "red",
+      });
+      throw error;
+    }
+  };
+
   const totalRows = filteredPatients.length;
   const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
   const clampedPage = Math.min(currentPage, totalPages);
@@ -323,7 +405,7 @@ export default function DashboardPage() {
     <ProtectedRoute>
       <div className="h-screen flex overflow-hidden">
         <DashboardNavBar />
-        <main className="flex-1 flex flex-col px-30 py-10 overflow-y-auto">
+        <main className="flex-1 flex flex-col px-30 py-20 overflow-y-auto">
           {/* Header Title */}
           <div className="mb-8">
             <h1 className="text-4xl font-bold ">Patients Overview</h1>
@@ -347,8 +429,9 @@ export default function DashboardPage() {
                 size="md"
                 radius="md"
                 leftSection={<IconUpload />}
+                onClick={() => setIsAddPatientOpen(true)}
               >
-                Upload Patients
+                Add New Patient
               </Button>
               <Button
                 variant="light"
@@ -419,6 +502,12 @@ export default function DashboardPage() {
           opened={isFilterOpen}
           onClose={() => setIsFilterOpen(false)}
           onApply={handleApplyFilters}
+        />
+
+        <AddPatientModal
+          opened={isAddPatientOpen}
+          onClose={() => setIsAddPatientOpen(false)}
+          onApply={handleCreatePatient}
         />
       </div>
     </ProtectedRoute>
