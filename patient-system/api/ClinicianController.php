@@ -36,7 +36,7 @@ class ClinicianController
                     $this->create();  // create: POST /api/clinician
                     break;
                 default:
-                    json_response(405, ['error' => 'Method not allowed.']);
+                    json(405, ['error' => 'Method not allowed.']);
             }
         }
         // /api/clinician/{id}
@@ -56,7 +56,7 @@ class ClinicianController
                     $this->delete($id);  // delete: DELETE /api/clinician/{id}
                     break;
                 default:
-                    json_response(405, ['error' => 'Method not allowed.']);
+                    json(405, ['error' => 'Method not allowed.']);
             }
         }
     }
