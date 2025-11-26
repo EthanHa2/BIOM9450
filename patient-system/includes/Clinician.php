@@ -132,4 +132,36 @@ class Clinician
             ':id'         => $id,
         ]);
     }
+
+    // search clinician
+    public function search(array $filters = []): array
+    {
+        $sql = "SELECT * FROM clinician WHERE 1=1";
+        $params = [];
+
+        // equal
+        $equals = [
+            'clinician_id',
+            'email',
+            'first_name',
+            'last_name',
+            'specialty',
+            'phone',
+        ];
+        foreach ($equals as $field) {
+            if (!empty($filters[$field])) {
+                $param = ":{$field}";
+                $sql .= " AND {$field} = {$param}";
+                $params[$param] = $filters[$field];
+            }
+        }
+
+        // order
+        $sql .= " ORDER BY last_name, first_name";
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
