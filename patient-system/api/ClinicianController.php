@@ -4,117 +4,110 @@ declare(strict_types=1);
 
 class ClinicianController
 {
-    private PDO $pdo;
+    public function __construct(private PDO $pdo) {}
 
-    public function __construct(PDO $pdo)
+    private function json(int $status, array $body): void
     {
-        $this->pdo = $pdo;
+        http_response_code($status);
+        echo json_encode($body);
+        exit;
     }
 
-    /**
-     * Handle /clinician routes
-     *
-     * URL patterns (based on your api.php router):
-     *   GET  /api.php/clinician/{id}      → fetch clinician profile
-     *   PUT  /api.php/clinician/{id}      → update clinician profile
-     *   PATCH /api.php/clinician/{id}     → update clinician profile
-     */
-    public function handle(?int $id, ?string $sub, string $method): void
+    private function getJsonBody(): array
     {
+        $raw = file_get_contents('php://input');
+        $data = json_decode($raw, true);
+        if (!is_array($data)) {
+            $this->json(400, ['error' => 'Invalid JSON body.']);
+        }
+        return $data;
+    }
+
+    // entry point from API
+    public function handle(?int $id, ?string $sub, ?string $method): void
+    {
+        // /api/clinician
         if ($id === null) {
-            json_response(400, ['error' => 'Clinician ID is required.']);
+            switch ($method) {
+                case 'GET':
+                    $this->search();  // search: GET /api/clinician
+                    break;
+                case 'POST':
+                    $this->create();  // create: POST /api/clinician
+                    break;
+                default:
+                    json_response(405, ['error' => 'Method not allowed.']);
+            }
         }
+        // /api/clinician/{id}
+        else {
+            // validation: check mutation ID
+            $mutation = new Mutation($this->pdo);
+            $rows = $mutation->search(['clinician_id' => $id]);
+            if (empty($rows)) {
+                $this->json(404, ['error' => "Clinician with ID {$id} not found."]);
+            }
 
-        switch ($method) {
-            case 'GET':
-                $this->getOne($id);
-                break;
-
-            case 'PUT':
-            case 'PATCH':
-                $this->update($id);
-                break;
-
-            default:
-                json_response(405, ['error' => 'Method not allowed for clinician.']);
+            switch ($method) {
+                case 'PUT':
+                    $this->update($id);  // update: PUT /api/clinician/{id}
+                    break;
+                case 'DELETE':
+                    $this->delete($id);  // delete: DELETE /api/clinician/{id}
+                    break;
+                default:
+                    json_response(405, ['error' => 'Method not allowed.']);
+            }
         }
     }
 
-    private function getOne(int $id): void
+    // POST /api/clinician
+    public function create(): void
     {
-        $stmt = $this->pdo->prepare("
-            SELECT clinician_id, first_name, last_name, email, phone, specialty
-            FROM clinician
-            WHERE clinician_id = :id
-            LIMIT 1
-        ");
-        $stmt->execute([':id' => $id]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $data = $this->getJsonBody();
+        $patient = new Clinician($this->pdo);
+        $newId = $patient->create($data);
 
-        if (!$row) {
-            json_response(404, ['success' => false, 'message' => 'Clinician not found.']);
-        }
-
-        json_response(200, [
-            'success' => true,
-            'data'    => $row,
+        $this->json(201, [
+            'clinician_id' => $newId,
+            'message' => 'Clinician created successfully.',
         ]);
     }
 
-    private function update(int $id): void
+    // PUT /api/clinician/{id}
+    public function update(int $id): void
     {
-        // Reuse helper from api.php
-        $data = getJsonBody();
+        $data = $this->getJsonBody();
+        $mutation = new Clinician($this->pdo);
 
-        $firstName = isset($data['first_name']) ? trim((string)$data['first_name']) : '';
-        $lastName  = isset($data['last_name']) ? trim((string)$data['last_name']) : '';
-        $email     = isset($data['email']) ? trim((string)$data['email']) : '';
-        $phone     = isset($data['phone']) ? trim((string)$data['phone']) : '';
-        $specialty = isset($data['specialty']) ? trim((string)$data['specialty']) : '';
+        $mutation->update($id, $data);
 
-        if ($firstName === '' || $lastName === '' || $email === '') {
-            json_response(422, [
-                'success' => false,
-                'message' => 'First name, last name, and email are required.',
-            ]);
-        }
-
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            json_response(422, [
-                'success' => false,
-                'message' => 'Invalid email format.',
-            ]);
-        }
-
-        $stmt = $this->pdo->prepare("
-            UPDATE clinician
-            SET first_name = :first_name,
-                last_name  = :last_name,
-                email      = :email,
-                phone      = :phone,
-                specialty  = :specialty
-            WHERE clinician_id = :id
-        ");
-
-        $ok = $stmt->execute([
-            ':first_name' => $firstName,
-            ':last_name'  => $lastName,
-            ':email'      => $email,
-            ':phone'      => $phone,
-            ':specialty'  => $specialty,
-            ':id'         => $id,
+        $this->json(200, [
+            'message' => "Clinician {$id} updated successfully.",
         ]);
+    }
 
-        if (!$ok) {
-            json_response(500, [
-                'success' => false,
-                'message' => 'Failed to update clinician profile.',
-            ]);
-        }
+    // DELETE /api/clinician/{id}
+    public function delete(int $id): void
+    {
+        $patient = new Clinician($this->pdo);
+        $patient->delete($id);
+        $this->json(200, ['message' => "Clinician {$id} deleted successfully."]);
+    }
 
-        json_response(200, [
-            'success' => true,
-            'message' => 'Clinician profile updated successfully.',
-        ]);
+    // GET /api/clinician?first_name=...
+    public function search(): void
+    {
+        $clinician = new Clinician($this->pdo);
+        $filters = [
+            'clinician_id' => $_GET['clinician_id'] ?? null,
+            'first_name' => $_GET['first_name'] ?? null,
+            'last_name' => $_GET['last_name'] ?? null,
+            'email' => $_GET['email'] ?? null,
+            'phone' => $_GET['phone'] ?? null,
+            'specialty' => $_GET['specialty'] ?? null,
+        ];
+        $results = $clinician->search($filters);
+        $this->json(200, ['clinicians' => $results]);
     }
 }
