@@ -37,11 +37,7 @@ final class Validator
         $today = new DateTimeImmutable('today', $timezone);
 
         foreach ($fields as $field) {
-            if (!isset($data[$field])) {
-                throw new InvalidArgumentException("Missing required field: {$field}");
-            }
-
-            $value = (string)$data[$field];
+            $value = trim((string) $data[$field]);
 
             // parse with the exact same timezone
             $dt = DateTimeImmutable::createFromFormat($format, $value, $timezone);
@@ -55,7 +51,7 @@ final class Validator
             // normalise to 00:00
             $dt = $dt->setTime(0, 0, 0);
 
-            // Date must not be in the future
+            // date must not be in the future
             if ($requirePast && $dt > $today) {
                 throw new InvalidArgumentException(
                     "Field {$field} cannot be later than today ({$today->format($format)})."
@@ -83,6 +79,17 @@ final class Validator
 
             if (!file_exists($checkPath)) {
                 throw new InvalidArgumentException("File for field {$field} does not exist or is invalid.");
+            }
+        }
+    }
+
+    // email
+    public static function email(array $data, array $fields): void
+    {
+        foreach ($fields as $field) {
+            $value = trim((string) $data[$field]);
+            if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
+                throw new InvalidArgumentException("Field {$field} must be a valid email address.");
             }
         }
     }
