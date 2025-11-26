@@ -6,6 +6,23 @@ final class PhenotypeController
 {
     public function __construct(private PDO $pdo) {}
 
+    private function json(int $status, array $body): void
+    {
+        http_response_code($status);
+        echo json_encode($body);
+        exit;
+    }
+
+    private function getJsonBody(): array
+    {
+        $raw = file_get_contents('php://input');
+        $data = json_decode($raw, true);
+        if (!is_array($data)) {
+            $this->json(400, ['error' => 'Invalid JSON body.']);
+        }
+        return $data;
+    }
+
     // entry point from API
     public function handle(?int $id, ?string $sub, ?string $method): void
     {
@@ -26,7 +43,7 @@ final class PhenotypeController
                     $this->create();  // create: POST /api/phenotype
                     break;
                 default:
-                    json(405, ['error' => 'Method not allowed.']);
+                    json_response(405, ['error' => 'Method not allowed.']);
             }
         }
         // /api/phenotype/{id}
@@ -35,7 +52,7 @@ final class PhenotypeController
             $phenotype = new Phenotype($this->pdo);
             $row = $phenotype->search(['phenotype_id' => $id])[0] ?? null;
             if (!$row) {
-                json(404, ['error' => "Phenotype with ID {$id} not found."]);
+                $this->json(404, ['error' => "Phenotype with ID {$id} not found."]);
             }
 
             // /api/phenotype/{id}
@@ -47,7 +64,7 @@ final class PhenotypeController
                     $this->delete($id);  // delete: DELETE /api/phenotype/{id}
                     break;
                 default:
-                    json(405, ['error' => 'Method not allowed.']);
+                    json_response(405, ['error' => 'Method not allowed.']);
             }
         }
     }
@@ -64,17 +81,17 @@ final class PhenotypeController
             'description'   => $_GET['description'] ?? null,
         ];
         $results = $phenotype->search($filters);
-        json(200, ['phenotypes' => $results]);
+        $this->json(200, ['phenotypes' => $results]);
     }
 
     // POST /api/phenotype
     public function create(): void
     {
-        $data = getJsonBody();
+        $data = $this->getJsonBody();
         $phenotype = new Phenotype($this->pdo);
         $newId = $phenotype->create($data);
 
-        json(201, [
+        $this->json(201, [
             'phenotype_id' => $newId,
             'message'      => 'Phenotype created successfully.',
         ]);
@@ -83,12 +100,12 @@ final class PhenotypeController
     // PUT /api/phenotype/{id}
     public function update(int $id): void
     {
-        $data = getJsonBody();
+        $data = $this->getJsonBody();
         $phenotype = new Phenotype($this->pdo);
 
         $phenotype->update($id, $data);
 
-        json(200, [
+        $this->json(200, [
             'message' => "Phenotype {$id} updated successfully.",
         ]);
     }
@@ -98,7 +115,7 @@ final class PhenotypeController
     {
         $phenotype = new Phenotype($this->pdo);
         $phenotype->delete($id);
-        json(200, ['message' => "Phenotype {$id} deleted successfully."]);
+        $this->json(200, ['message' => "Phenotype {$id} deleted successfully."]);
     }
 
     /**
