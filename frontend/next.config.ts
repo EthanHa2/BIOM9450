@@ -38,6 +38,17 @@ const nextConfig: NextConfig = {
         destination: `${phpBaseUrl}/logout.php` 
       },
 
+      { 
+        source: "/api/upload_photo", 
+        destination: `${phpBaseUrl}/api/upload_photo.php` 
+      },
+      
+      // Proxy static uploads from PHP server
+      {
+        source: "/patient-system/uploads/:path*",
+        destination: `${phpBaseUrl}/uploads/:path*`
+      },
+
       // Catch-All for Controllers 
       { 
         source: "/api/:path*", 

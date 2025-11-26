@@ -68,10 +68,20 @@ final class Validator
     public static function path(array $data, array $fields, string $baseDir): void
     {
         foreach ($fields as $field) {
+            if (!isset($data[$field]) || $data[$field] === null) {
+                continue; // Skip validation if field is not present or null
+            }
             $value = (string)$data[$field];
 
-            $real = realpath($baseDir . DIRECTORY_SEPARATOR . $value);
-            if ($real === false || strncmp($real, $baseDir, strlen($baseDir)) !== 0) {
+            // Construct path relative to document root if it starts with /
+            $docRoot = $_SERVER['DOCUMENT_ROOT'] ?? '';
+            if (strpos($value, '/') === 0 && !empty($docRoot)) {
+                $checkPath = $docRoot . $value;
+            } else {
+                $checkPath = $baseDir . DIRECTORY_SEPARATOR . $value;
+            }
+
+            if (!file_exists($checkPath)) {
                 throw new InvalidArgumentException("File for field {$field} does not exist or is invalid.");
             }
         }

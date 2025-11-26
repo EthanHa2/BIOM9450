@@ -26,7 +26,6 @@ class Patient
             'dob',
             'sex',
             'phone',
-            'address',
         ];
         Validator::required($data, $required);
 

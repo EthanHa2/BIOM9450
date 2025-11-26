@@ -22,7 +22,7 @@ import { formatString } from "@/utils/stringUtils";
 
 export interface MutationFormData {
   mutation_id?: number;
-  icgc_specimen_id: string;
+  icgc_specimen_id?: string;
   chromosome: string;
   chromosome_start: number | "";
   chromosome_end: number | "";
@@ -43,7 +43,6 @@ interface AddMutationModalProps {
 }
 
 const defaultData: MutationFormData = {
-  icgc_specimen_id: "",
   chromosome: "",
   chromosome_start: "",
   chromosome_end: "",
@@ -246,7 +245,6 @@ export function AddMutationModal({
 
   // Check if all required fields are filled
   const isValid =
-    formData.icgc_specimen_id &&
     formData.gene_affected &&
     formData.chromosome &&
     formData.chromosome_start !== "" &&
@@ -512,25 +510,15 @@ export function AddMutationModal({
           Fields marked with <span className="text-red-500">*</span> are
           required.
         </Text>
-        {/* Row 1: Identifiers */}
-        <Group grow>
-          <TextInput
-            label="ICGC Specimen ID"
-            placeholder="e.g., SP12345"
-            value={formData.icgc_specimen_id}
-            onChange={(e) => handleChange("icgc_specimen_id", e.target.value)}
-            required
-            radius="md"
-          />
-          <TextInput
-            label="Gene Affected"
-            placeholder="e.g., TP53"
-            value={formData.gene_affected}
-            onChange={(e) => handleChange("gene_affected", e.target.value)}
-            required
-            radius="md"
-          />
-        </Group>
+        {/* Row 1: Gene */}
+        <TextInput
+          label="Gene Affected"
+          placeholder="e.g., TP53"
+          value={formData.gene_affected}
+          onChange={(e) => handleChange("gene_affected", e.target.value)}
+          required
+          radius="md"
+        />
 
         {/* Row 2: Chromosome Location */}
         <Group grow align="flex-start">
