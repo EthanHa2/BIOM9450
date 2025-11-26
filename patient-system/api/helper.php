@@ -1,5 +1,6 @@
 <?php
 
+// serialise json
 function json(int $status, array $body): void
 {
     http_response_code($status);
@@ -7,6 +8,7 @@ function json(int $status, array $body): void
     exit;
 }
 
+// get json body & deserialise json
 function getJsonBody(): array
 {
     $raw = file_get_contents('php://input');
@@ -16,3 +18,6 @@ function getJsonBody(): array
     }
     return $data;
 }
+
+// not found error
+class NotFoundException extends RuntimeException {}

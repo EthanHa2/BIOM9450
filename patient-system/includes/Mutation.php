@@ -224,7 +224,7 @@ class Mutation
     {
         $rows = $this->search(["mutation_id" => $id]);
         if (empty($rows)) {
-            throw new RuntimeException("Mutation with ID {$id} not found.");
+            throw new NotFoundException("Mutation with ID {$id} not found.");
         }
         return reset($rows);
     }

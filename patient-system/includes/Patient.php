@@ -185,7 +185,7 @@ class Patient
     {
         $rows = $this->search(["patient_id" => $id]);
         if (empty($rows)) {
-            throw new RuntimeException("Patient with ID {$id} not found.");
+            throw new NotFoundException("Patient with ID {$id} not found.");
         }
         return reset($rows);
     }

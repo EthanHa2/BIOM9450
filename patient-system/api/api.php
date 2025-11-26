@@ -88,10 +88,12 @@ try {
             $controller->handle($id, $sub, $method);
             break;
         default:
-            json(404, ['error' => 'Resource not found.']);
+            throw new NotFoundException("Resource not found.");
     }
 } catch (InvalidArgumentException $e) { // invalid argument
     json(422, ['error' => $e->getMessage()]);
+} catch (NotFoundException $e) { // invalid argument
+    json(404, ['error' => $e->getMessage()]);
 } catch (RuntimeException $e) { // client error
     json(400, ['error' => $e->getMessage()]);
 } catch (Throwable $e) { // server error

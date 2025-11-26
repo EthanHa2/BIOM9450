@@ -171,7 +171,7 @@ class Diagnostic
     {
         $rows = $this->search(["diagnosis_id" => $id]);
         if (empty($rows)) {
-            throw new RuntimeException("Diagnostic with ID {$id} not found.");
+            throw new NotFoundException("Diagnostic with ID {$id} not found.");
         }
         return reset($rows);
     }
