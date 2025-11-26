@@ -65,7 +65,7 @@ CREATE TABLE patient_mutation (
     recorded_date DATE NOT NULL DEFAULT (CURRENT_DATE),
     PRIMARY KEY (patient_id, mutation_id),
     CONSTRAINT fk_pm_patient FOREIGN KEY (patient_id) REFERENCES patient(patient_id) ON DELETE CASCADE,
-    CONSTRAINT fk_pm_mutation FOREIGN KEY (mutation_id) REFERENCES mutation(mutation_id) ON DELETE RESTRICT
+    CONSTRAINT fk_pm_mutation FOREIGN KEY (mutation_id) REFERENCES mutation(mutation_id) ON DELETE CASCADE
 ) ENGINE = InnoDB;
 CREATE TABLE user_activity (
     activity_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -83,7 +83,7 @@ CREATE TABLE reports (
     content MEDIUMTEXT NOT NULL,
     created_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_reports_patient (patient_id, created_date),
-    CONSTRAINT fk_reports_patient FOREIGN KEY (patient_id) REFERENCES patient(patient_id) ON UPDATE CASCADE ON DELETE
+    CONSTRAINT fk_reports_patient FOREIGN KEY (patient_id) REFERENCES patient(patient_id) ON UPDATE CASCADE ON DELETE CASCADE
     SET NULL
 ) ENGINE = InnoDB;
 CREATE TABLE category (
