@@ -223,9 +223,9 @@ VALUES (
         '2024-08-22'
     ), 
     (3, 3, 'Frequent seizures; developmental regression', '2023-12-12'),
-(4, 3, 'Multiple skin neurofibromas; optic pathway glioma', '2024-03-03'),
-(5, 2, 'Abdominal pain; rectal bleeding; weight loss', '2024-04-11'),
-(6, 1, 'Delayed speech; repetitive behaviours; poor eye contact', '2024-05-11');
+    (4, 3, 'Multiple skin neurofibromas; optic pathway glioma', '2024-03-03'),
+    (5, 2, 'Abdominal pain; rectal bleeding; weight loss', '2024-04-11'),
+    (6, 1, 'Delayed speech; repetitive behaviours; poor eye contact', '2024-05-11');
 
 INSERT INTO category (patient_id, category_type)
 VALUES (1, 'phenotype'),
@@ -233,10 +233,10 @@ VALUES (1, 'phenotype'),
         (3, 'mutation');
 INSERT INTO user_activity (clinician_id, activity_type, ip_address)
 VALUES (1, 'login', '192.168.1.2'),
-    (2, 'login', '192.168.1.3'),
-(2, 'edit',   '192.168.1.11'),
-(3, 'login',  '192.168.1.12'),
-(4, 'report', '192.168.1.13');
+        (2, 'login', '192.168.1.3'),
+        (2, 'edit',   '192.168.1.11'),
+        (3, 'login',  '192.168.1.12'),
+        (4, 'report', '192.168.1.13');
 
 INSERT INTO reports (patient_id, report_type, content)
 VALUES (
@@ -253,7 +253,7 @@ VALUES (
 
 -- 3) import CSV (run if file exists and LOCAL is allowed)
 -- 3) IMPORT CSV INTO mutation
--- (update the path to wherever the file lives on your machine)
+-- (update the path to wherever the file is on your machine)
 LOAD DATA LOCAL INFILE '/Users/sarina/Downloads/BIOM9450/BIOM9450/Mutation_original.csv'
 INTO TABLE mutation
 FIELDS TERMINATED BY ','
@@ -281,19 +281,24 @@ INSERT INTO patient (
     photo,
     icgc_specimen_id
 )
-SELECT DISTINCT
+SELECT
     'ICGC' AS first_name,
     m.icgc_specimen_id AS last_name,
     '1970-01-01' AS dob,
     'Other' AS sex,
     '0000000000' AS phone,
-    CONCAT('Imported from ICGC dataset (cancer type: ', m.cancer_type, ')') AS address,
+    CONCAT(
+      'Imported from ICGC dataset (cancer types: ',
+      GROUP_CONCAT(DISTINCT m.cancer_type SEPARATOR ', '),
+      ')'
+    ) AS address,
     NULL AS photo,
     m.icgc_specimen_id
 FROM mutation m
 LEFT JOIN patient p
     ON p.icgc_specimen_id = m.icgc_specimen_id
-WHERE p.icgc_specimen_id IS NULL;
+WHERE p.icgc_specimen_id IS NULL
+GROUP BY m.icgc_specimen_id;
 
 -- 5) FILL THE patient_mutation JUNCTION TABLE
 INSERT INTO patient_mutation (patient_id, mutation_id, recorded_date)
