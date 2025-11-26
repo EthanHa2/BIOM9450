@@ -31,13 +31,6 @@ final class DiagnosticController
         }
         // /api/diagnostic/{id}
         else {
-            // validation: check diagnostic ID
-            $diagnostic = new Diagnostic($this->pdo);
-            $row = $diagnostic->search(['diagnostic_id' => $id])[0] ?? null;
-            if (!$row) {
-                json(404, ['error' => "Diagnostic with ID {$id} not found."]);
-            }
-
             switch ($method) {
                 case 'PUT':
                     $this->update($id);  // update: PUT /api/diagnostic/{id}

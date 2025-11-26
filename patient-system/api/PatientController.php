@@ -24,13 +24,6 @@ final class PatientController
         }
         // /api/patient/{id}
         else {
-            // validation: check patient ID
-            $patient = new Patient($this->pdo);
-            $row = $patient->search(['patient_id' => $id])[0] ?? null;
-            if (!$row) {
-                json(404, ['error' => "Patient with ID {$id} not found."]);
-            }
-
             // /api/patient/{id}
             if ($method === 'GET' && ($sub === 'mutations' || $sub === 'mutation')) {
                 $this->getMutations($id); // GET /api/patient/{id}/mutations

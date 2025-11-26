@@ -31,13 +31,6 @@ final class PhenotypeController
         }
         // /api/phenotype/{id}
         else {
-            // validation: check phenotype ID
-            $phenotype = new Phenotype($this->pdo);
-            $row = $phenotype->search(['phenotype_id' => $id])[0] ?? null;
-            if (!$row) {
-                json(404, ['error' => "Phenotype with ID {$id} not found."]);
-            }
-
             // /api/phenotype/{id}
             switch ($method) {
                 case 'PUT':
