@@ -1,5 +1,5 @@
 <?php
-$config = require __DIR__ . '/../db_config.php';
+$config = require __DIR__ . '/../../db_config.php';
 $dsn = "mysql:host={$config['host']};dbname={$config['db']};charset={$config['charset']}";
 $options = [
     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
