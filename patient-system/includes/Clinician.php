@@ -133,6 +133,14 @@ class Clinician
         ]);
     }
 
+    // delete clinician
+    public function delete(int $id): void
+    {
+        $stmt = $this->pdo->prepare("DELETE FROM clinician WHERE clinician_id = ?");
+        $stmt->execute([$id]);
+    }
+
+
     // search clinician
     public function search(array $filters = []): array
     {
