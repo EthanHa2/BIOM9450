@@ -30,6 +30,7 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (values: typeof form.values) => {
+    // guard double-clicks; mantine already disables button but this keeps it safe
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
@@ -55,6 +56,7 @@ export default function LoginPage() {
       }
 
       if (response.ok && result.success && result.user) {
+        // success -> raise a toast so clinicians know they’re in
         notifications.show({
           title: "Login Successful",
           message: `Welcome back, ${result.user.name}!`,
@@ -63,6 +65,7 @@ export default function LoginPage() {
 
         login(result.user); // Update global auth state
       } else {
+        // bubble up any php error messages so clinicians know what went wrong
         notifications.show({
           title: "Login Failed",
           message: result.message,

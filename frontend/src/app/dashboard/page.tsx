@@ -144,14 +144,17 @@ export default function DashboardPage() {
 
   useEffect(() => {
     // load seed data plus related tables before rendering cards
+    // this happens client-side because the php api already exposes everything we need
     async function fetchData() {
       try {
         // fetch all patients
+        // this endpoint returns only demographic info, so we enrich below
         const res = await fetch(`${API_BASE_URL}/patient`);
         const data = await res.json();
         const patientList = data.patients || [];
 
         // fetch details for each patient
+        // parallelising these requests reduces total load time when the dataset is large
         const fullPatients = await Promise.all(
           patientList.map(async (p: Patient) => {
             // Fetch Diagnostics
@@ -161,14 +164,16 @@ export default function DashboardPage() {
             const diagData = await diagRes.json();
             const diagnostics: Diagnostic[] = diagData.diagnostics || [];
 
-            // Fetch Phenotypes
+            // Fetch Phenotypes so we can surface badge counts
+            // phenotypes are stored as free text, so we normalise them later
             const phenoRes = await fetch(
               `${API_BASE_URL}/phenotype?patient_id=${p.patient_id}`
             );
             const phenoData = await phenoRes.json();
             const phenotypes: Phenotype[] = phenoData.phenotypes || [];
 
-            // Fetch Mutations
+            // Fetch Mutations for the detail link (used mainly downstream)
+            // this is useful context for the patient detail page
             const mutRes = await fetch(
               `${API_BASE_URL}/patient/${p.patient_id}/mutation`
             );
@@ -176,6 +181,7 @@ export default function DashboardPage() {
             const mutations: Mutation[] = mutData.mutations || [];
 
             // get diagnosis (taking the first one for now)
+            // in future we could expose a richer summary here
             const primaryDiag = diagnostics[0];
 
             // map phenotype descriptions to a string array
@@ -208,6 +214,7 @@ export default function DashboardPage() {
 
   const handleApplyFilters = (filters: FilterValues) => {
     // everything filters client-side so we can pivot instantly
+    // for larger datasets we could push filters server-side, but this keeps UX fast
     const filtered = allPatients.filter((patient) => {
       // ID Filter (exact match because ids need to be deterministic)
       if (
@@ -218,6 +225,7 @@ export default function DashboardPage() {
       }
 
       // First Name Filter (case-insensitive substring search)
+      // intentionally loose to catch partial matches and nicknames
       if (
         filters.firstName &&
         !patient.first_name
@@ -228,6 +236,7 @@ export default function DashboardPage() {
       }
 
       // Last Name Filter
+      // identical approach to first name filter
       if (
         filters.lastName &&
         !patient.last_name
@@ -238,6 +247,7 @@ export default function DashboardPage() {
       }
 
       // DOB Filter (min/max bounds coming from date pickers)
+      // ensures clinicians can build cohorts within age ranges
       if (filters.dobFrom) {
         const dobDate = new Date(patient.dob);
         if (dobDate < filters.dobFrom) {
@@ -252,6 +262,7 @@ export default function DashboardPage() {
       }
 
       // Sex Filter
+      // converts everything to lowercase to avoid case mismatches
       if (
         filters.sex &&
         patient.sex.toLowerCase() !== filters.sex.toLowerCase()
@@ -260,6 +271,7 @@ export default function DashboardPage() {
       }
 
       // Diagnostics Filter
+      // only include patients whose primary diagnosis matches one of the requested values
       if (filters.diagnostics && filters.diagnostics.length > 0) {
         if (!patient.diagnosis) return false;
         if (
@@ -272,6 +284,7 @@ export default function DashboardPage() {
       }
 
       // Treatment Filter
+      // similar idea to diagnostics; treatment values come straight from php
       if (filters.treatment) {
         if (!patient.treatment) return false;
         if (
@@ -282,6 +295,7 @@ export default function DashboardPage() {
       }
 
       // Phenotypes Filter (every requested phenotype must exist somewhere)
+      // this allows partial matches so users can enter "neuro" and match multiple descriptors
       if (filters.phenotypes.length > 0) {
         if (!patient.phenotypes) return false;
         const hasAll = filters.phenotypes.every((ph) =>
@@ -301,6 +315,7 @@ export default function DashboardPage() {
 
   const handleCreatePatient = async (data: PatientFormData) => {
     // normalise payload before posting through the php rewrite
+    // php enforces stricter validation than the modal, hence the extra guards
     const dobDate =
       data.dob instanceof Date
         ? data.dob
@@ -394,7 +409,7 @@ export default function DashboardPage() {
     setCurrentPage((prev) => Math.min(totalPages, prev + 1));
   };
 
-  let startPage = Math.max(1, clampedPage - Math.floor(MAX_VISIBLE_PAGES / 2));
+  let startPage = Math.max(1, clampedPage - Math.floor(MAX_VISIBLE_PAGES / 2)); // centre pagination around selected page
   let endPage = startPage + MAX_VISIBLE_PAGES - 1;
 
   if (endPage > totalPages) {
@@ -409,6 +424,7 @@ export default function DashboardPage() {
 
   const handleDownloadReport = () => {
     // export the currently filtered list to pdf via jsPDF
+    // we keep report generation on the client to avoid another php dependency
     if (filteredPatients.length === 0) {
       notifications.show({
         title: "No data to export",
@@ -445,6 +461,7 @@ export default function DashboardPage() {
 
       filteredPatients.forEach((p, index) => {
         // Page break if needed
+        // this ensures we never render past the bottom margin
         if (y > pageHeight - 30) {
           doc.addPage();
           y = marginTop;
@@ -464,6 +481,7 @@ export default function DashboardPage() {
             : "None recorded";
 
         // Section heading
+        // each patient gets a mini section to keep the pdf readable
         doc.setFontSize(13);
         doc.setFont("helvetica", "bold");
         doc.text(

@@ -57,7 +57,7 @@ export default function RegisterPage() {
   };
 
   const handleSubmit = async (values: typeof form.values) => {
-    if (isSubmitting) return;
+    if (isSubmitting) return; // prevent double submits if user taps quickly
     setIsSubmitting(true);
     try {
       const response = await fetch("/api/register", {
@@ -87,7 +87,7 @@ export default function RegisterPage() {
           color: "green",
         });
 
-        router.push("/login");
+        router.push("/login"); // send user to login so they can sign in right away
       } else {
         notifications.show({
           title: "Registration Failed",
