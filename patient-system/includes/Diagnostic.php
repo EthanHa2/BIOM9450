@@ -33,9 +33,8 @@ class Diagnostic
         Validator::int($data, $ints);
 
         // validation: dates
-        // Temporarily skip strict date validation due to timezone issues.
-        // $dates = ['diagnosis_date'];
-        // Validator::date($data, $dates);
+        $dates = ['diagnosis_date'];
+        Validator::date($data, $dates);
 
         // validation: patient_id & clinician_id
         $patientRepo = new Patient($this->pdo);

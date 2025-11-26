@@ -156,15 +156,15 @@ class Patient
         // date range
         if (!empty($filters['dob_from'])) {
             // validation: date
-            // $dates = ['dob_from'];
-            // Validator::date($filters, $dates);
+            $dates = ['dob_from'];
+            Validator::date($filters, $dates, requirePast: false);
             $sql .= " AND dob >= :dob_from";
             $params[':dob_from'] = $filters['dob_from'];
         }
         if (!empty($filters['dob_to'])) {
             // validation: date
-            // $dates = ['dob_to'];
-            // Validator::date($filters, $dates);
+            $dates = ['dob_to'];
+            Validator::date($filters, $dates, requirePast: false);
             $sql .= " AND dob <= :dob_to";
             $params[':dob_to'] = $filters['dob_to'];
         }

@@ -30,9 +30,8 @@ class Phenotype
         Validator::int($data, $ints);
 
         // validation: dates
-        // Temporarily skip strict date validation due to timezone issues.
-        // $dates = ['recorded_date'];
-        // Validator::date($data, $dates);
+        $dates = ['recorded_date'];
+        Validator::date($data, $dates);
 
         // validation: patient_id & clinician_id
         $patientRepo = new Patient($this->pdo);
