@@ -12,6 +12,9 @@ import {
   Transition,
   Group,
   Text,
+  Image,
+  Box,
+  FileButton,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import "@mantine/dates/styles.css";
@@ -52,6 +55,8 @@ interface Patient {
   phone?: string;
   sex: string;
   dob: string;
+  address?: string;
+  photo?: string;
 }
 
 interface Diagnostic {
@@ -250,9 +255,40 @@ export default function PatientDetailsPage() {
     };
 
   const handleSaveInfo = async () => {
-    setBackupPatient(patient);
-    setIsEditingInfo(false);
-    // Ideally, make a PUT request here to update patient info in backend
+    if (!patient) return;
+
+    try {
+      const payload = {
+        first_name: patient.first_name,
+        last_name: patient.last_name,
+        dob: patient.dob, // Assuming dob is already in 'YYYY-MM-DD' format from updatePatientField
+        sex: patient.sex,
+        email: patient.email,
+        phone: patient.phone,
+        address: patient.address,
+        photo: patient.photo,
+      };
+
+      const res = await fetch(`${API_BASE_URL}/patient/${patient.patient_id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to update patient information");
+      }
+
+      const result = await res.json();
+      console.log(result.message);
+
+      setBackupPatient(patient);
+      setIsEditingInfo(false);
+    } catch (error) {
+      console.error("Error updating patient info:", error);
+      alert("Failed to update patient information.");
+      // Revert to backup on error if desired, or keep current state so user can retry
+    }
   };
 
   const handleCancelInfo = () => {
@@ -471,7 +507,7 @@ export default function PatientDetailsPage() {
           mutation_id: data,
         };
 
-        res = await fetch(`${API_BASE_URL}/mutation`, {
+        res = await fetch(`${API_BASE_URL}/mutation/link`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -489,10 +525,8 @@ export default function PatientDetailsPage() {
       }
 
       // Prepare payload - convert empty strings to null or keep as is depending on backend
-      const payload = {
+      const mutationPayload = {
         ...data,
-        patient_id: patient.patient_id,
-        // Ensure numbers are numbers, strings are strings
         chromosome_start: Number(data.chromosome_start) || 0,
         chromosome_end: Number(data.chromosome_end) || 0,
       };
@@ -505,7 +539,7 @@ export default function PatientDetailsPage() {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              ...payload,
+              ...mutationPayload,
               mutation_id: editingMutation.mutation_id,
             }),
           }
@@ -515,7 +549,7 @@ export default function PatientDetailsPage() {
         res = await fetch(`${API_BASE_URL}/mutation`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(mutationPayload),
         });
       }
 
@@ -527,18 +561,34 @@ export default function PatientDetailsPage() {
         setMutations((prev) =>
           prev.map((m) =>
             m.mutation_id === targetId
-              ? ({ ...m, ...payload, mutation_id: targetId } as Mutation) // cast to Mutation because form data might be looser
+              ? ({
+                  ...m,
+                  ...mutationPayload,
+                  mutation_id: targetId,
+                } as Mutation)
               : m
           )
         );
       } else {
+        const newMutationId = result.mutation_id || result.id;
+
+        const linkRes = await fetch(`${API_BASE_URL}/mutation/link`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            patient_id: patient.patient_id,
+            mutation_id: newMutationId,
+          }),
+        });
+
+        if (!linkRes.ok) throw new Error("Failed to link new mutation");
+
         const newMutation: Mutation = {
-          ...payload,
-          mutation_id: result.mutation_id || result.id,
-          // Ensure types match Mutation interface
-          icgc_specimen_id: payload.icgc_specimen_id,
-          chromosome: payload.chromosome,
-          mutation_type: payload.mutation_type,
+          ...mutationPayload,
+          mutation_id: newMutationId,
+          icgc_specimen_id: "",
+          chromosome: mutationPayload.chromosome,
+          mutation_type: mutationPayload.mutation_type,
         };
         setMutations((prev) => [...prev, newMutation]);
       }
@@ -617,39 +667,131 @@ export default function PatientDetailsPage() {
             </Title>
             <Divider className="my-4" />
             <div className="bg-slate-50 p-6 rounded-xl border border-transparent shadow-md relative">
-              <div className="space-y-2">
-                <InfoRow
-                  label="Patient ID"
-                  value={String(patient.patient_id)}
-                  isEditing={false}
-                  onChange={() => {}}
-                  readOnly
-                />
-                <InfoRow
-                  label="First Name"
-                  value={patient.first_name}
-                  isEditing={isEditingInfo}
-                  onChange={updatePatientField("first_name")}
-                />
-                <InfoRow
-                  label="Last Name"
-                  value={patient.last_name}
-                  isEditing={isEditingInfo}
-                  onChange={updatePatientField("last_name")}
-                />
-                <InfoRow
-                  label="Date of Birth"
-                  value={patient.dob}
-                  isEditing={isEditingInfo}
-                  onChange={updatePatientField("dob")}
-                  type="date"
-                />
-                <InfoRow
-                  label="Sex"
-                  value={patient.sex}
-                  isEditing={isEditingInfo}
-                  onChange={updatePatientField("sex")}
-                />
+              <div className="flex flex-col md:flex-row gap-8">
+                {/* Info Fields */}
+                <div className="flex-1 space-y-2">
+                  <InfoRow
+                    label="Patient ID"
+                    value={String(patient.patient_id)}
+                    isEditing={false}
+                    onChange={() => {}}
+                    readOnly
+                  />
+                  <InfoRow
+                    label="First Name"
+                    value={patient.first_name}
+                    isEditing={isEditingInfo}
+                    onChange={updatePatientField("first_name")}
+                  />
+                  <InfoRow
+                    label="Last Name"
+                    value={patient.last_name}
+                    isEditing={isEditingInfo}
+                    onChange={updatePatientField("last_name")}
+                  />
+                  <InfoRow
+                    label="Date of Birth"
+                    value={patient.dob}
+                    isEditing={isEditingInfo}
+                    onChange={updatePatientField("dob")}
+                    type="date"
+                  />
+                  <InfoRow
+                    label="Sex"
+                    value={patient.sex}
+                    isEditing={isEditingInfo}
+                    onChange={updatePatientField("sex")}
+                  />
+                  <InfoRow
+                    label="Phone"
+                    value={patient.phone || ""}
+                    isEditing={isEditingInfo}
+                    onChange={updatePatientField("phone")}
+                  />
+                  <InfoRow
+                    label="Address"
+                    value={patient.address || ""}
+                    isEditing={isEditingInfo}
+                    onChange={updatePatientField("address")}
+                  />
+                </div>
+
+                {/* Photo Section (Right Side) */}
+                <div className="flex flex-col items-center gap-4">
+                  <Box
+                    w={200}
+                    h={200}
+                    className="bg-gray-200 rounded-full overflow-hidden flex items-center justify-center border-4 border-white shadow-sm"
+                  >
+                    {patient.photo ? (
+                      <Image
+                        src={patient.photo}
+                        alt={`${patient.first_name} ${patient.last_name}`}
+                        w={200}
+                        h={200}
+                        fit="cover"
+                        fallbackSrc="https://placehold.co/200x200?text=No+Photo"
+                      />
+                    ) : (
+                      <Text c="dimmed" size="sm">
+                        No Photo
+                      </Text>
+                    )}
+                  </Box>
+                  {isEditingInfo && (
+                    <div className="flex flex-col gap-2 items-center">
+                      <FileButton
+                        onChange={async (file) => {
+                          if (!file) return;
+                          try {
+                            const formData = new FormData();
+                            formData.append("photo", file);
+
+                            const res = await fetch(
+                              `${API_BASE_URL}/upload_photo`,
+                              {
+                                method: "POST",
+                                body: formData,
+                              }
+                            );
+
+                            if (!res.ok) {
+                              const error = await res.json();
+                              throw new Error(
+                                error.error || "Failed to upload photo"
+                              );
+                            }
+
+                            const data = await res.json();
+                            updatePatientField("photo")(data.path);
+                          } catch (error) {
+                            console.error("Upload error:", error);
+                            alert(
+                              error instanceof Error
+                                ? error.message
+                                : "Failed to upload photo"
+                            );
+                          }
+                        }}
+                        accept="image/png,image/jpeg"
+                      >
+                        {(props) => (
+                          <Button
+                            {...props}
+                            variant="light"
+                            size="xs"
+                            leftSection={<IconPlus size={14} />}
+                          >
+                            Upload Photo
+                          </Button>
+                        )}
+                      </FileButton>
+                      <Text size="xs" c="dimmed">
+                        Max 5MB (JPG or PNG)
+                      </Text>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="mt-6 flex justify-end gap-3">

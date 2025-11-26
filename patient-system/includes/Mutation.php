@@ -105,7 +105,7 @@ class Mutation
         // validation
         $clean = $this->processData($merged);
 
-        // prepare query - ADDED patient_id and icgc_specimen_id
+        // prepare query
         $stmt = $this->pdo->prepare("
           UPDATE mutation
           SET chromosome = :chromosome,
@@ -138,7 +138,7 @@ class Mutation
     // delete mutation
     public function delete(int $id): void
     {
-        $stmt = $this->pdo->prepare("DELETE FROM diagnostic WHERE diagnosis_id = ?");
+        $stmt = $this->pdo->prepare("DELETE FROM mutation WHERE mutation_id = ?");
         $stmt->execute([$id]);
     }
 
@@ -153,7 +153,9 @@ class Mutation
         Validator::required($data, $required);
         // validation: id
         $this->find($data['mutation_id']);
-        new Patient($this->pdo)->find($data['patient_id']);
+
+        $patient = new Patient($this->pdo);
+        $patient->find($data['patient_id']);
 
         // check if link already exists to avoid duplicates
         $check = $this->pdo->prepare("SELECT 1 FROM patient_mutation WHERE patient_id = ? AND mutation_id = ?");

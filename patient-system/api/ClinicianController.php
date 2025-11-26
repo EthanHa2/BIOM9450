@@ -41,14 +41,10 @@ class ClinicianController
         }
         // /api/clinician/{id}
         else {
-            // validation: check mutation ID
-            $mutation = new Mutation($this->pdo);
-            $rows = $mutation->search(['clinician_id' => $id]);
-            if (empty($rows)) {
-                $this->json(404, ['error' => "Clinician with ID {$id} not found."]);
-            }
-
             switch ($method) {
+                case 'GET':
+                    $this->getOne($id); // GET /api/clinician/{id}
+                    break;
                 case 'PUT':
                     $this->update($id);  // update: PUT /api/clinician/{id}
                     break;
@@ -59,6 +55,21 @@ class ClinicianController
                     json(405, ['error' => 'Method not allowed.']);
             }
         }
+    }
+
+    // GET /api/clinician/{id}
+    private function getOne(int $id): void
+    {
+        $clinician = new Clinician($this->pdo);
+        $row = $clinician->find($id);
+        if (!$row) {
+            $this->json(404, ['error' => "Clinician with ID {$id} not found."]);
+        }
+
+        $this->json(200, [
+            'success' => true,
+            'data' => $row,
+        ]);
     }
 
     // POST /api/clinician

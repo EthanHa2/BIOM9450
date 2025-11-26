@@ -12,6 +12,9 @@ import {
 } from "@/components/SearchFilterModal";
 import { IconSearch, IconUpload, IconDownload } from "@tabler/icons-react";
 
+const PAGE_SIZE = 8;
+const MAX_VISIBLE_PAGES = 5;
+
 interface Patient {
   patient_id: number;
   first_name: string;
@@ -129,6 +132,7 @@ export default function DashboardPage() {
   const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     async function fetchData() {
@@ -282,13 +286,44 @@ export default function DashboardPage() {
     });
 
     setFilteredPatients(filtered);
+    setCurrentPage(1);
   };
+
+  const totalRows = filteredPatients.length;
+  const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
+  const clampedPage = Math.min(currentPage, totalPages);
+  const startIndex = totalRows === 0 ? 0 : (clampedPage - 1) * PAGE_SIZE;
+  const endIndex =
+    totalRows === 0 ? 0 : Math.min(startIndex + PAGE_SIZE, totalRows);
+  const pageRows =
+    totalRows === 0 ? [] : filteredPatients.slice(startIndex, endIndex);
+
+  const handlePrev = () => {
+    setCurrentPage((prev) => Math.max(1, prev - 1));
+  };
+
+  const handleNext = () => {
+    setCurrentPage((prev) => Math.min(totalPages, prev + 1));
+  };
+
+  let startPage = Math.max(1, clampedPage - Math.floor(MAX_VISIBLE_PAGES / 2));
+  let endPage = startPage + MAX_VISIBLE_PAGES - 1;
+
+  if (endPage > totalPages) {
+    endPage = totalPages;
+    startPage = Math.max(1, endPage - MAX_VISIBLE_PAGES + 1);
+  }
+
+  const pageNumbers: number[] = [];
+  for (let p = startPage; p <= endPage; p += 1) {
+    pageNumbers.push(p);
+  }
 
   return (
     <ProtectedRoute>
       <div className="h-screen flex overflow-hidden">
         <DashboardNavBar />
-        <main className="flex-1 flex flex-col px-40 py-25 overflow-y-auto">
+        <main className="flex-1 flex flex-col px-30 py-10 overflow-y-auto">
           {/* Header Title */}
           <div className="mb-8">
             <h1 className="text-4xl font-bold ">Patients Overview</h1>
@@ -331,17 +366,52 @@ export default function DashboardPage() {
             <div className="flex justify-center items-center h-64">
               <Loader size="xl" />
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {filteredPatients.map((patient) => (
-                <PatientCard key={patient.patient_id} patient={patient} />
-              ))}
-              {filteredPatients.length === 0 && (
-                <div className="col-span-2 text-3xl text-center text-gray-500 py-10">
-                  No patients found matching criteria.
-                </div>
-              )}
+          ) : totalRows === 0 ? (
+            <div className="col-span-2 text-3xl text-center text-gray-500 py-10">
+              No patients found matching criteria.
             </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {pageRows.map((patient) => (
+                  <PatientCard key={patient.patient_id} patient={patient} />
+                ))}
+              </div>
+
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mt-6">
+                <span className="text-sm text-slate-500">
+                  Showing {startIndex + 1}-{endIndex} of {totalRows} patients
+                </span>
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={clampedPage === 1}
+                    onClick={handlePrev}
+                  >
+                    Previous
+                  </Button>
+                  {pageNumbers.map((page) => (
+                    <Button
+                      key={page}
+                      variant={page === clampedPage ? "filled" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={clampedPage === totalPages}
+                    onClick={handleNext}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            </>
           )}
         </main>
 
