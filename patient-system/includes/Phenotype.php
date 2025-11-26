@@ -71,10 +71,10 @@ class Phenotype
         ");
         // execute query
         $stmt->execute([
-            ':patient_id' => $clean['patient_id'],
-            ':clinician_id' => $clean['clinician_id'],
-            ':recorded_date' => $clean['recorded_date'],
-            ':description' => $clean['description'],
+            ':patient_id' => $clean['patient_id'] ?? null,
+            ':clinician_id' => $clean['clinician_id'] ?? null,
+            ':recorded_date' => $clean['recorded_date'] ?? null,
+            ':description' => $clean['description'] ?? null,
         ]);
         return (int)$this->pdo->lastInsertId();
     }
@@ -105,10 +105,10 @@ class Phenotype
         ");
         // execute query
         $stmt->execute([
-            ':patient_id' => $clean['patient_id'],
-            ':clinician_id' => $clean['clinician_id'],
-            ':recorded_date' => $clean['recorded_date'],
-            ':description' => $clean['description'],
+            ':patient_id' => $clean['patient_id'] ?? null,
+            ':clinician_id' => $clean['clinician_id'] ?? null,
+            ':recorded_date' => $clean['recorded_date'] ?? null,
+            ':description' => $clean['description'] ?? null,
             ':id' => $id,
         ]);
     }

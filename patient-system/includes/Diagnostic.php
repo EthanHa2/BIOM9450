@@ -78,12 +78,12 @@ class Diagnostic
         ");
         // execute query
         $stmt->execute([
-            ':patient_id' => $clean['patient_id'],
-            ':clinician_id' => $clean['clinician_id'],
-            ':diagnosis_date' => $clean['diagnosis_date'],
-            ':diagnosis_type' => $clean['diagnosis_type'],
-            ':description' => $clean['description'],
-            ':treatment' => $clean['treatment'],
+            ':patient_id' => $clean['patient_id'] ?? null,
+            ':clinician_id' => $clean['clinician_id'] ?? null,
+            ':diagnosis_date' => $clean['diagnosis_date'] ?? null,
+            ':diagnosis_type' => $clean['diagnosis_type'] ?? null,
+            ':description' => $clean['description'] ?? null,
+            ':treatment' => $clean['treatment'] ?? null,
         ]);
         return (int)$this->pdo->lastInsertId();
     }
@@ -116,12 +116,12 @@ class Diagnostic
         ");
         // execute query
         $stmt->execute([
-            ':patient_id' => $clean['patient_id'],
-            ':clinician_id' => $clean['clinician_id'],
-            ':diagnosis_date' => $clean['diagnosis_date'],
-            ':diagnosis_type' => $clean['diagnosis_type'],
-            ':description' => $clean['description'],
-            ':treatment' => $clean['treatment'],
+            ':patient_id' => $clean['patient_id'] ?? null,
+            ':clinician_id' => $clean['clinician_id'] ?? null,
+            ':diagnosis_date' => $clean['diagnosis_date'] ?? null,
+            ':diagnosis_type' => $clean['diagnosis_type'] ?? null,
+            ':description' => $clean['description'] ?? null,
+            ':treatment' => $clean['treatment'] ?? null,
             ':id' => $id,
         ]);
     }

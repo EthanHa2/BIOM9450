@@ -23,23 +23,27 @@ final class Validator
     public static function int(array $data, array $fields): void
     {
         foreach ($fields as $field) {
+            // skip validation if field is not present
+            if (!isset($data[$field])) continue;
             if (!is_numeric($data[$field])) {
                 throw new InvalidArgumentException("Field {$field} must be numeric.");
             }
         }
     }
 
-
     // date
     public static function date(array $data, array $fields, string $format = 'Y-m-d', bool $requirePast = True): void
     {
+        // set timezone for consistency
         $timezone = new DateTimeZone('Australia/Sydney');
         $today = new DateTimeImmutable('today', $timezone);
 
         foreach ($fields as $field) {
+            // skip validation if field is not present
+            if (!isset($data[$field])) continue;
             $value = trim((string) $data[$field]);
 
-            // parse with the exact same timezone
+            // parse with the same timezone
             $dt = DateTimeImmutable::createFromFormat($format, $value, $timezone);
             $errors = DateTimeImmutable::getLastErrors();
 
@@ -87,6 +91,8 @@ final class Validator
     public static function email(array $data, array $fields): void
     {
         foreach ($fields as $field) {
+            // skip validation if field is not present
+            if (!isset($data[$field])) continue;
             $value = trim((string) $data[$field]);
             if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
                 throw new InvalidArgumentException("Field {$field} must be a valid email address.");
