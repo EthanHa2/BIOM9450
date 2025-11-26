@@ -6,6 +6,23 @@ final class DiagnosticController
 {
     public function __construct(private PDO $pdo) {}
 
+    private function json(int $status, array $body): void
+    {
+        http_response_code($status);
+        echo json_encode($body);
+        exit;
+    }
+
+    private function getJsonBody(): array
+    {
+        $raw = file_get_contents('php://input');
+        $data = json_decode($raw, true);
+        if (!is_array($data)) {
+            $this->json(400, ['error' => 'Invalid JSON body.']);
+        }
+        return $data;
+    }
+
     // entry point from API
     public function handle(?int $id, ?string $sub, ?string $method): void
     {
@@ -26,11 +43,18 @@ final class DiagnosticController
                     $this->create();  // create: POST /api/diagnostic
                     break;
                 default:
-                    json(405, ['error' => 'Method not allowed.']);
+                    json_response(405, ['error' => 'Method not allowed.']);
             }
         }
         // /api/diagnostic/{id}
         else {
+            // validation: check diagnostic ID
+            $diagnostic = new Diagnostic($this->pdo);
+            $row = $diagnostic->search(['diagnostic_id' => $id])[0] ?? null;
+            if (!$row) {
+                $this->json(404, ['error' => "Diagnostic with ID {$id} not found."]);
+            }
+
             switch ($method) {
                 case 'PUT':
                     $this->update($id);  // update: PUT /api/diagnostic/{id}
@@ -39,7 +63,7 @@ final class DiagnosticController
                     $this->delete($id);  // delete: DELETE /api/diagnostic/{id}
                     break;
                 default:
-                    json(405, ['error' => 'Method not allowed.']);
+                    json_response(405, ['error' => 'Method not allowed.']);
             }
         }
     }
@@ -58,17 +82,17 @@ final class DiagnosticController
             'treatment'     => $_GET['treatment'] ?? null,
         ];
         $results = $diagnostic->search($filters);
-        json(200, ['diagnostics' => $results]);
+        $this->json(200, ['diagnostics' => $results]);
     }
 
     // POST /api/diagnostic
     public function create(): void
     {
-        $data = getJsonBody();
+        $data = $this->getJsonBody();
         $diagnostic = new Diagnostic($this->pdo);
         $newId = $diagnostic->create($data);
 
-        json(201, [
+        $this->json(201, [
             'diagnostic_id' => $newId,
             'message'       => 'Diagnostic created successfully.',
         ]);
@@ -77,12 +101,12 @@ final class DiagnosticController
     // PUT /api/diagnostic/{id}
     public function update(int $id): void
     {
-        $data = getJsonBody();
+        $data = $this->getJsonBody();
         $diagnostic = new Diagnostic($this->pdo);
 
         $diagnostic->update($id, $data);
 
-        json(200, [
+        $this->json(200, [
             'message' => "Diagnostic {$id} updated successfully.",
         ]);
     }
@@ -92,7 +116,7 @@ final class DiagnosticController
     {
         $diagnostic = new Diagnostic($this->pdo);
         $diagnostic->delete($id);
-        json(200, ['message' => "Diagnostic {$id} deleted successfully."]);
+        $this->json(200, ['message' => "Diagnostic {$id} deleted successfully."]);
     }
 
     /**
