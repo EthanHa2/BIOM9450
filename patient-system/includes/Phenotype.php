@@ -31,6 +31,8 @@ class Phenotype
 
         // validation: dates
         // Temporarily skip strict date validation due to timezone issues.
+        // $dates = ['recorded_date'];
+        // Validator::date($data, $dates);
 
         // validation: patient_id & clinician_id
         $patientRepo = new Patient($this->pdo);
@@ -60,14 +62,14 @@ class Phenotype
     {
         // validate & process data
         $clean = $this->processData($data);
-
+        // prepare query
         $stmt = $this->pdo->prepare("
           INSERT INTO phenotype
             (patient_id, clinician_id, recorded_date, description)
           VALUES
             (:patient_id, :clinician_id, :recorded_date, :description)
         ");
-
+        // execute query
         $stmt->execute([
             ':patient_id' => $clean['patient_id'],
             ':clinician_id' => $clean['clinician_id'],
@@ -101,7 +103,6 @@ class Phenotype
               description = :description
           WHERE phenotype_id = :id
         ");
-
         // execute query
         $stmt->execute([
             ':patient_id' => $clean['patient_id'],
@@ -115,7 +116,9 @@ class Phenotype
     // delete phenotype
     public function delete(int $id): void
     {
+        // prepare query
         $stmt = $this->pdo->prepare("DELETE FROM phenotype WHERE phenotype_id = ?");
+        // execute query
         $stmt->execute([$id]);
     }
 
@@ -140,8 +143,9 @@ class Phenotype
                 $params[$param] = $filters[$field];
             }
         }
-
+        // prepare query
         $stmt = $this->pdo->prepare($sql);
+        // execute query
         $stmt->execute($params);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);

@@ -63,13 +63,14 @@ class Patient
         // validate & process data
         $clean = $this->processData($data);
 
+        // prepare query
         $stmt = $this->pdo->prepare("
           INSERT INTO patient
             (first_name, last_name, dob, sex, phone, address, photo)
           VALUES
             (:first_name, :last_name, :dob, :sex, :phone, :address, :photo)
         ");
-
+        // execute query
         $stmt->execute([
             ':first_name' => $clean['first_name'],
             ':last_name' => $clean['last_name'],
@@ -97,6 +98,7 @@ class Patient
         // validate & process data
         $clean = $this->processData($merged);
 
+        // prepare query
         $stmt = $this->pdo->prepare("
           UPDATE patient
           SET first_name = :first_name,
@@ -108,6 +110,7 @@ class Patient
               photo = :photo
           WHERE patient_id = :id
         ");
+        // execute query
         $stmt->execute([
             ':first_name' => $clean['first_name'],
             ':last_name' => $clean['last_name'],
@@ -152,10 +155,16 @@ class Patient
 
         // date range
         if (!empty($filters['dob_from'])) {
+            // validation: date
+            // $dates = ['dob_from'];
+            // Validator::date($filters, $dates);
             $sql .= " AND dob >= :dob_from";
             $params[':dob_from'] = $filters['dob_from'];
         }
         if (!empty($filters['dob_to'])) {
+            // validation: date
+            // $dates = ['dob_to'];
+            // Validator::date($filters, $dates);
             $sql .= " AND dob <= :dob_to";
             $params[':dob_to'] = $filters['dob_to'];
         }
@@ -163,7 +172,9 @@ class Patient
         // order
         $sql .= " ORDER BY last_name, first_name";
 
+        // prepare query
         $stmt = $this->pdo->prepare($sql);
+        // execute query
         $stmt->execute($params);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -182,6 +193,8 @@ class Patient
     // get all mutations of given patient
     public function getMutations(int $id): ?array
     {
+
+        // prepare query
         $stmt = $this->pdo->prepare("
             SELECT m.*
             FROM mutation AS m
@@ -189,6 +202,7 @@ class Patient
                 ON pm.mutation_id = m.mutation_id
             WHERE pm.patient_id = :patient_id;
         ");
+        // execute query
         $stmt->execute([':patient_id' => $id]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
