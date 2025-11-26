@@ -15,6 +15,9 @@ import {
 import { IconSearch, IconUpload, IconDownload } from "@tabler/icons-react";
 import { AddPatientModal, PatientFormData } from "@/components/AddPatientModal";
 
+// PDF library
+import jsPDF from "jspdf";
+
 const PAGE_SIZE = 6;
 const MAX_VISIBLE_PAGES = 5;
 
@@ -24,8 +27,8 @@ interface Patient {
   last_name: string;
   sex: string;
   dob: string;
-  diagnosis?: string;
-  treatment?: string;
+  diagnosis?: string | null;
+  treatment?: string | null;
   phenotypes?: string[];
   mutations?: Mutation[];
 }
@@ -175,7 +178,6 @@ export default function DashboardPage() {
             const primaryDiag = diagnostics[0];
 
             // map phenotype descriptions to a string array
-            // split by semicolon if multiple are stored in one description
             const phenotypeList = phenotypes.flatMap((ph) =>
               ph.description.split(";").map((s) => s.trim())
             );
@@ -401,6 +403,140 @@ export default function DashboardPage() {
     pageNumbers.push(p);
   }
 
+  const handleDownloadReport = () => {
+    if (filteredPatients.length === 0) {
+      notifications.show({
+        title: "No data to export",
+        message: "There are no patients matching the current filters.",
+        color: "yellow",
+      });
+      return;
+    }
+
+    try {
+      const doc = new jsPDF("p", "mm", "a4");
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+
+      const marginLeft = 14;
+      const marginTop = 20;
+      const lineHeight = 7;
+      let y = marginTop;
+
+      const title = "Patients Clinical Report";
+      const dateStr = new Date().toLocaleString("en-AU");
+
+      doc.setFontSize(18);
+      doc.text(title, marginLeft, y);
+      y += lineHeight;
+
+      doc.setFontSize(11);
+      doc.setTextColor(100);
+      doc.text(`Generated: ${dateStr}`, marginLeft, y);
+      y += lineHeight * 2;
+
+      doc.setTextColor(0);
+      doc.setFontSize(12);
+
+      filteredPatients.forEach((p, index) => {
+        // Page break if needed
+        if (y > pageHeight - 30) {
+          doc.addPage();
+          y = marginTop;
+        }
+
+        const dobStr = p.dob
+          ? new Date(p.dob).toLocaleDateString("en-AU", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            })
+          : "N/A";
+
+        const phenotypesStr =
+          p.phenotypes && p.phenotypes.length > 0
+            ? p.phenotypes.join("; ")
+            : "None recorded";
+
+        const mutationsStr =
+          p.mutations && p.mutations.length > 0
+            ? p.mutations
+                .map((m) => {
+                  const gene = m.gene_affected || "N/A";
+                  const type = m.mutation_type || "N/A";
+                  const cons = m.consequence_type || "N/A";
+                  return `${gene} (${type}, ${cons})`;
+                })
+                .join(" | ")
+            : "None recorded";
+
+        // Section heading
+        doc.setFontSize(13);
+        doc.setFont("helvetica", "bold");
+        doc.text(
+          `Patient #${index + 1} — ${p.first_name} ${p.last_name} (ID: ${
+            p.patient_id
+          })`,
+          marginLeft,
+          y
+        );
+        y += lineHeight;
+
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "normal");
+
+        const addWrappedText = (label: string, value: string) => {
+          const labelText = `${label}: `;
+          const labelWidth =
+            doc.getTextWidth(labelText) + 1; // small spacing after label
+          const maxWidth = pageWidth - marginLeft * 2;
+
+          const lines = doc.splitTextToSize(value || "", maxWidth - labelWidth);
+
+          // First line with label
+          doc.text(labelText, marginLeft, y);
+          doc.text(String(lines[0] || ""), marginLeft + labelWidth, y);
+          y += lineHeight;
+
+          // Remaining lines (indented)
+          for (let i = 1; i < lines.length; i++) {
+            if (y > pageHeight - 20) {
+              doc.addPage();
+              y = marginTop;
+            }
+            doc.text(String(lines[i]), marginLeft + labelWidth, y);
+            y += lineHeight;
+          }
+        };
+
+        addWrappedText("Sex", p.sex || "N/A");
+        addWrappedText("Date of Birth", dobStr);
+        addWrappedText("Diagnosis", p.diagnosis || "N/A");
+        addWrappedText("Treatment", p.treatment || "N/A");
+        addWrappedText("Phenotypes", phenotypesStr);
+        addWrappedText("Mutations", mutationsStr);
+
+        y += lineHeight; // extra spacing between patients
+      });
+
+      const fileDate = new Date().toISOString().slice(0, 10);
+      doc.save(`patients_report_${fileDate}.pdf`);
+
+      notifications.show({
+        title: "Report downloaded",
+        message: "Patients report exported as PDF.",
+        color: "green",
+      });
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      notifications.show({
+        title: "Download failed",
+        message: "Could not generate the report. Please try again.",
+        color: "red",
+      });
+    }
+  };
+
   return (
     <ProtectedRoute>
       <div className="h-screen flex overflow-hidden">
@@ -438,6 +574,7 @@ export default function DashboardPage() {
                 size="md"
                 radius="md"
                 leftSection={<IconDownload />}
+                onClick={handleDownloadReport}
               >
                 Download Report
               </Button>
