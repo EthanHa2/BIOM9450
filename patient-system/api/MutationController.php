@@ -23,18 +23,9 @@ final class MutationController
         return $data;
     }
 
+    // entry point from API
     public function handle(?int $id, ?string $sub, ?string $method): void
     {
-        if ($sub === 'link' && $method === 'POST') {
-            $this->link();
-            return;
-        }
-
-        if ($sub === 'unlink' && $method === 'POST') {
-            $this->unlink();
-            return;
-        }
-
         // /api/mutation
         if ($id === null) {
             switch ($method) {
@@ -42,7 +33,9 @@ final class MutationController
                     $this->search();  // search: GET /api/mutation
                     break;
                 case 'POST':
-                    $this->create();  // create: POST /api/mutation
+                    if ($sub === 'link') $this->link();         // link mutation: POST /api/mutation/link
+                    elseif ($sub === 'unlink') $this->unlink(); // unlink mutation: POST /api/mutation/link
+                    else $this->create();                       // create: POST /api/mutation
                     break;
                 default:
                     json_response(405, ['error' => 'Method not allowed.']);
@@ -50,14 +43,6 @@ final class MutationController
         }
         // /api/mutation/{id}
         else {
-            // validation: check mutation ID
-            $mutation = new Mutation($this->pdo);
-            $row = $mutation->search(['mutation_id' => $id])[0] ?? null;
-            if (!$row) {
-                $this->json(404, ['error' => "Mutation with ID {$id} not found."]);
-            }
-
-            // /api/mutation/{id}
             switch ($method) {
                 case 'PUT':
                     $this->update($id);  // update: PUT /api/mutation/{id}
@@ -96,18 +81,6 @@ final class MutationController
     {
         $data = $this->getJsonBody();
         $mutation = new Mutation($this->pdo);
-
-        // handle linking when both ids present
-        if (!empty($data['patient_id']) && !empty($data['mutation_id'])) {
-            try {
-                $mutation->linkPatient((int)$data['patient_id'], (int)$data['mutation_id']);
-                $this->json(200, ['message' => 'Mutation linked to patient successfully.']);
-            } catch (Exception $e) {
-                $this->json(500, ['error' => $e->getMessage()]);
-            }
-            return;
-        }
-
         $newId = $mutation->create($data);
 
         $this->json(201, [
@@ -141,33 +114,17 @@ final class MutationController
     private function link(): void
     {
         $data = $this->getJsonBody();
-        if (empty($data['patient_id']) || empty($data['mutation_id'])) {
-            $this->json(400, ['error' => 'patient_id and mutation_id are required.']);
-        }
-
         $mutation = new Mutation($this->pdo);
-        try {
-            $mutation->linkPatient((int)$data['patient_id'], (int)$data['mutation_id']);
-            $this->json(200, ['message' => 'Mutation linked to patient successfully.']);
-        } catch (Exception $e) {
-            $this->json(500, ['error' => $e->getMessage()]);
-        }
+        $mutation->linkPatient($data);
+        $this->json(200, ['message' => 'Mutation linked to patient successfully.']);
     }
 
     // POST /api/mutation/unlink
     private function unlink(): void
     {
         $data = $this->getJsonBody();
-        if (empty($data['patient_id']) || empty($data['mutation_id'])) {
-            $this->json(400, ['error' => 'patient_id and mutation_id are required.']);
-        }
-
         $mutation = new Mutation($this->pdo);
-        try {
-            $mutation->unlinkPatient((int)$data['patient_id'], (int)$data['mutation_id']);
-            $this->json(200, ['message' => 'Mutation unlinked from patient successfully.']);
-        } catch (Exception $e) {
-            $this->json(500, ['error' => $e->getMessage()]);
-        }
+        $mutation->unlinkPatient($data);
+        $this->json(200, ['message' => 'Mutation unlinked from patient successfully.']);
     }
 }
