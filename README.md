@@ -50,3 +50,5 @@ npm run dev
    5. Set "Skip this number of queries..." to 1 (skips the column names of csv file)
    6. Paste the following into "Column Names" under "Format-specific Option": icgc_specimen_id, chromosome, chromosome_start, chromosome_end, mutation_type, mutated_from_allele, mutated_to_allele, consequence_type, gene_affected, cancer_type
 
+## Run php server to set up backend API
+Start backend php server: `php -S 127.0.0.1:8000 patient-system/api/api.php`.
