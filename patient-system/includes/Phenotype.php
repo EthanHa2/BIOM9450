@@ -81,8 +81,12 @@ class Phenotype
     public function update(int $id, array $data): void
     {
         // merge incoming data with existing data
-        $existing = $this->search(["phenotype_id" => $id]);
-        $merged = $existing ? array_intersect_key($existing, array_flip(self::FIELDS)) : [];
+        $rows = $this->search(["phenotype_id" => $id]);
+        if (empty($rows)) {
+            throw new RuntimeException("Phenotype with ID {$id} not found.");
+        }
+        $existing = reset($rows);
+        $merged = array_intersect_key($existing, array_flip(self::FIELDS));
         foreach (self::FIELDS as $field) {
             if (array_key_exists($field, $data)) {
                 $merged[$field] = $data[$field];
