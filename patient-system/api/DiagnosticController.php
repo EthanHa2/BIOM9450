@@ -43,7 +43,7 @@ final class DiagnosticController
                     $this->create();  // create: POST /api/diagnostic
                     break;
                 default:
-                    json_response(405, ['error' => 'Method not allowed.']);
+                    json(405, ['error' => 'Method not allowed.']);
             }
         }
         // /api/diagnostic/{id}
@@ -63,7 +63,7 @@ final class DiagnosticController
                     $this->delete($id);  // delete: DELETE /api/diagnostic/{id}
                     break;
                 default:
-                    json_response(405, ['error' => 'Method not allowed.']);
+                    json(405, ['error' => 'Method not allowed.']);
             }
         }
     }

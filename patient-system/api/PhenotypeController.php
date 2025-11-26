@@ -43,7 +43,7 @@ final class PhenotypeController
                     $this->create();  // create: POST /api/phenotype
                     break;
                 default:
-                    json_response(405, ['error' => 'Method not allowed.']);
+                    json(405, ['error' => 'Method not allowed.']);
             }
         }
         // /api/phenotype/{id}
@@ -64,7 +64,7 @@ final class PhenotypeController
                     $this->delete($id);  // delete: DELETE /api/phenotype/{id}
                     break;
                 default:
-                    json_response(405, ['error' => 'Method not allowed.']);
+                    json(405, ['error' => 'Method not allowed.']);
             }
         }
     }

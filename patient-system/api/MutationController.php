@@ -49,7 +49,7 @@ final class MutationController
                     }
                     break;
                 default:
-                    json_response(405, ['error' => 'Method not allowed.']);
+                    json(405, ['error' => 'Method not allowed.']);
             }
         }
         // /api/mutation/{id}
@@ -62,7 +62,7 @@ final class MutationController
                     $this->delete($id);  // delete: DELETE /api/mutation/{id}
                     break;
                 default:
-                    json_response(405, ['error' => 'Method not allowed.']);
+                    json(405, ['error' => 'Method not allowed.']);
             }
         }
     }
