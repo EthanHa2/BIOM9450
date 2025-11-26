@@ -45,6 +45,9 @@ import {
   MutationFormData,
 } from "@/components/AddMutationModal";
 
+// PDF library
+import jsPDF from "jspdf";
+
 // --- Types ---
 
 interface Patient {
@@ -145,7 +148,7 @@ function InfoRow({
             styles={{
               input: {
                 backgroundColor: isEditing && !readOnly ? "white" : "#f8f9fa",
-                color: "#1f2937", // gray-800
+                color: "#1f2937",
                 cursor: isEditing && !readOnly ? "text" : "default",
               },
             }}
@@ -250,7 +253,7 @@ export default function PatientDetailsPage() {
           // Convert Date back to string format YYYY-MM-DD for backend/state compatibility
           val = value.toLocaleDateString("en-CA"); // en-CA outputs YYYY-MM-DD
         }
-        setPatient({ ...patient, [field]: val });
+        setPatient({ ...patient, [field]: val as any });
       }
     };
 
@@ -261,7 +264,7 @@ export default function PatientDetailsPage() {
       const payload = {
         first_name: patient.first_name,
         last_name: patient.last_name,
-        dob: patient.dob, // Assuming dob is already in 'YYYY-MM-DD' format from updatePatientField
+        dob: patient.dob,
         sex: patient.sex,
         email: patient.email,
         phone: patient.phone,
@@ -287,7 +290,6 @@ export default function PatientDetailsPage() {
     } catch (error) {
       console.error("Error updating patient info:", error);
       alert("Failed to update patient information.");
-      // Revert to backup on error if desired, or keep current state so user can retry
     }
   };
 
@@ -524,7 +526,6 @@ export default function PatientDetailsPage() {
         return;
       }
 
-      // Prepare payload - convert empty strings to null or keep as is depending on backend
       const mutationPayload = {
         ...data,
         chromosome_start: Number(data.chromosome_start) || 0,
@@ -532,7 +533,6 @@ export default function PatientDetailsPage() {
       };
 
       if (editingMutation) {
-        // UPDATE
         res = await fetch(
           `${API_BASE_URL}/mutation/${editingMutation.mutation_id}`,
           {
@@ -545,7 +545,6 @@ export default function PatientDetailsPage() {
           }
         );
       } else {
-        // CREATE
         res = await fetch(`${API_BASE_URL}/mutation`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -631,6 +630,244 @@ export default function PatientDetailsPage() {
     setEditingMutation(null);
   };
 
+  const handleDownloadReport = () => {
+    if (!patient) return;
+
+    try {
+      const doc = new jsPDF("p", "mm", "a4");
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+
+      const marginLeft = 14;
+      const marginTop = 20;
+      const lineHeight = 7;
+      let y = marginTop;
+
+      const title = "Patient Clinical Report";
+      const dateStr = new Date().toLocaleString("en-AU");
+
+      const dobStr = patient.dob
+        ? new Date(patient.dob).toLocaleDateString("en-AU", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          })
+        : "N/A";
+
+      // Header
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.text(title, marginLeft, y);
+      y += lineHeight;
+
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100);
+      doc.text(`Generated: ${dateStr}`, marginLeft, y);
+      y += lineHeight;
+      doc.text(
+        `Patient ID: ${patient.patient_id} | ${patient.first_name} ${patient.last_name}`,
+        marginLeft,
+        y
+      );
+      y += lineHeight * 2;
+
+      doc.setTextColor(0);
+
+      const addWrappedText = (label: string, value: string) => {
+        const labelText = `${label}: `;
+        const labelWidth = doc.getTextWidth(labelText) + 1;
+        const maxWidth = pageWidth - marginLeft * 2;
+
+        const lines = doc.splitTextToSize(value || "", maxWidth - labelWidth);
+
+        // Page break if needed
+        if (y > pageHeight - 20) {
+          doc.addPage();
+          y = marginTop;
+        }
+
+        // First line with label
+        doc.text(labelText, marginLeft, y);
+        doc.text(String(lines[0] || ""), marginLeft + labelWidth, y);
+        y += lineHeight;
+
+        // Remaining lines
+        for (let i = 1; i < lines.length; i++) {
+          if (y > pageHeight - 20) {
+            doc.addPage();
+            y = marginTop;
+          }
+          doc.text(String(lines[i]), marginLeft + labelWidth, y);
+          y += lineHeight;
+        }
+      };
+
+      // --- Patient Info Section ---
+      doc.setFontSize(13);
+      doc.setFont("helvetica", "bold");
+      doc.text("Patient Information", marginLeft, y);
+      y += lineHeight;
+
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+
+      addWrappedText("First Name", patient.first_name || "N/A");
+      addWrappedText("Last Name", patient.last_name || "N/A");
+      addWrappedText("Date of Birth", dobStr);
+      addWrappedText("Sex", patient.sex || "N/A");
+      addWrappedText("Phone", patient.phone || "N/A");
+      addWrappedText("Email", patient.email || "N/A");
+      addWrappedText("Address", patient.address || "N/A");
+
+      y += lineHeight;
+
+      // --- Diagnostics Section ---
+      doc.setFontSize(13);
+      doc.setFont("helvetica", "bold");
+      if (y > pageHeight - 20) {
+        doc.addPage();
+        y = marginTop;
+      }
+      doc.text("Diagnostics", marginLeft, y);
+      y += lineHeight;
+
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+
+      if (diagnostics.length === 0) {
+        addWrappedText("Diagnostics", "No diagnostics recorded.");
+      } else {
+        diagnostics.forEach((d, idx) => {
+          const diagDate = d.diagnosis_date
+            ? new Date(d.diagnosis_date).toLocaleDateString("en-AU", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+              })
+            : "N/A";
+
+          if (y > pageHeight - 30) {
+            doc.addPage();
+            y = marginTop;
+          }
+
+          doc.setFont("helvetica", "bold");
+          doc.text(`• Diagnostic #${idx + 1}`, marginLeft, y);
+          y += lineHeight;
+          doc.setFont("helvetica", "normal");
+
+          addWrappedText("Date", diagDate);
+          addWrappedText("Type", formatString(d.diagnosis_type));
+          addWrappedText("Treatment", d.treatment || "N/A");
+          addWrappedText("Details", d.description || "N/A");
+          y += lineHeight / 2;
+        });
+      }
+
+      y += lineHeight;
+
+      // --- Phenotypes Section ---
+      doc.setFontSize(13);
+      doc.setFont("helvetica", "bold");
+      if (y > pageHeight - 20) {
+        doc.addPage();
+        y = marginTop;
+      }
+      doc.text("Phenotypes", marginLeft, y);
+      y += lineHeight;
+
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+
+      if (phenotypes.length === 0) {
+        addWrappedText("Phenotypes", "No phenotypes recorded.");
+      } else {
+        phenotypes.forEach((p, idx) => {
+          const recDate = p.recorded_date
+            ? new Date(p.recorded_date).toLocaleDateString("en-AU", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+              })
+            : "N/A";
+
+          if (y > pageHeight - 30) {
+            doc.addPage();
+            y = marginTop;
+          }
+
+          doc.setFont("helvetica", "bold");
+          doc.text(`• Phenotype #${idx + 1}`, marginLeft, y);
+          y += lineHeight;
+          doc.setFont("helvetica", "normal");
+
+          addWrappedText("Date", recDate);
+          addWrappedText("Description", p.description || "N/A");
+          y += lineHeight / 2;
+        });
+      }
+
+      y += lineHeight;
+
+      // --- Mutations Section ---
+      doc.setFontSize(13);
+      doc.setFont("helvetica", "bold");
+      if (y > pageHeight - 20) {
+        doc.addPage();
+        y = marginTop;
+      }
+      doc.text("Mutations", marginLeft, y);
+      y += lineHeight;
+
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+
+      if (mutations.length === 0) {
+        addWrappedText("Mutations", "No mutations recorded.");
+      } else {
+        mutations.forEach((m, idx) => {
+          if (y > pageHeight - 40) {
+            doc.addPage();
+            y = marginTop;
+          }
+
+          doc.setFont("helvetica", "bold");
+          doc.text(`• Mutation #${idx + 1}`, marginLeft, y);
+          y += lineHeight;
+          doc.setFont("helvetica", "normal");
+
+          addWrappedText("ICGC Specimen ID", m.icgc_specimen_id || "N/A");
+          addWrappedText(
+            "Location",
+            `Chr ${m.chromosome} : ${m.chromosome_start} - ${m.chromosome_end}`
+          );
+          addWrappedText("Mutation Type", formatString(m.mutation_type));
+          addWrappedText(
+            "Alleles",
+            `${m.mutated_from_allele} → ${m.mutated_to_allele}`
+          );
+          addWrappedText(
+            "Consequence",
+            formatString(m.consequence_type) || "N/A"
+          );
+          addWrappedText("Gene Affected", m.gene_affected || "N/A");
+          addWrappedText("Cancer Type", formatString(m.cancer_type) || "N/A");
+          y += lineHeight / 2;
+        });
+      }
+
+      const fileDate = new Date().toISOString().slice(0, 10);
+      const safeName = `${patient.first_name}_${patient.last_name}`
+        .replace(/\s+/g, "_")
+        .replace(/[^a-zA-Z0-9_]/g, "");
+      doc.save(`patient_${safeName}_${fileDate}.pdf`);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      alert("Failed to generate report. Please try again.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -655,7 +892,11 @@ export default function PatientDetailsPage() {
           {/* Header */}
           <div className="flex justify-between items-center mb-8">
             <Title order={1}>Patients Details</Title>
-            <Button leftSection={<IconDownload size={16} />} variant="filled">
+            <Button
+              leftSection={<IconDownload size={16} />}
+              variant="filled"
+              onClick={handleDownloadReport}
+            >
               Download Report
             </Button>
           </div>
