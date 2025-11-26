@@ -11,16 +11,17 @@ final class PatientController
     {
         // /api/patient
         if ($id === null) {
-            switch ($method) {
-                case 'GET' && $sub === null:
-                    $this->search();  // search: GET /api/patient
-                    break;
-                case 'POST' && $sub === null:
-                    $this->create();  // create: POST /api/patient
-                    break;
-                default:
-                    json(405, ['error' => 'Method not allowed.']);
+            if ($method === 'GET' && $sub === null) {
+                $this->search();  // search: GET /api/patient
+                return;
             }
+
+            if ($method === 'POST' && $sub === null) {
+                $this->create();  // create: POST /api/patient
+                return;
+            }
+
+            json(405, ['error' => 'Method not allowed.']);
         }
         // /api/patient/{id}
         else {

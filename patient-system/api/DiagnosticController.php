@@ -11,32 +11,36 @@ final class DiagnosticController
     {
         // /api/diagnostic or /api/diagnostic/{sub}
         if ($id === null) {
-            switch ($method) {
-                case 'GET' && $sub === 'stats':
-                    $this->stats();  // stats: GET /api/diagnostic/stats
-                    break;
-                case 'GET' && $sub === null:
-                    $this->search();  // search: GET /api/diagnostic
-                    break;
-                case 'POST' && $sub === null:
-                    $this->create();  // create: POST /api/diagnostic
-                    break;
-                default:
-                    json(405, ['error' => 'Method not allowed.']);
+            if ($method === 'GET' && $sub === 'stats') {
+                $this->stats();  // stats: GET /api/diagnostic/stats
+                return;
             }
+
+            if ($method === 'GET' && $sub === null) {
+                $this->search();  // search: GET /api/diagnostic
+                return;
+            }
+
+            if ($method === 'POST' && $sub === null) {
+                $this->create();  // create: POST /api/diagnostic
+                return;
+            }
+
+            json(405, ['error' => 'Method not allowed.']);
         }
         // /api/diagnostic/{id}
         else {
-            switch ($method) {
-                case 'PUT' && $sub === null:
-                    $this->update($id);  // update: PUT /api/diagnostic/{id}
-                    break;
-                case 'DELETE' && $sub === null:
-                    $this->delete($id);  // delete: DELETE /api/diagnostic/{id}
-                    break;
-                default:
-                    json(405, ['error' => 'Method not allowed.']);
+            if ($method === 'PUT' && $sub === null) {
+                $this->update($id);  // update: PUT /api/diagnostic/{id}
+                return;
             }
+
+            if ($method === 'DELETE' && $sub === null) {
+                $this->delete($id);  // delete: DELETE /api/diagnostic/{id}
+                return;
+            }
+
+            json(405, ['error' => 'Method not allowed.']);
         }
     }
 

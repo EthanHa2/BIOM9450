@@ -11,32 +11,36 @@ class ClinicianController
     {
         // /api/clinician
         if ($id === null) {
-            switch ($method) {
-                case 'GET' && $sub === null:
-                    $this->search();  // search: GET /api/clinician
-                    break;
-                case 'POST' && $sub === null:
-                    $this->create();  // create: POST /api/clinician
-                    break;
-                default:
-                    json(405, ['error' => 'Method not allowed.']);
+            if ($method === 'GET' && $sub === null) {
+                $this->search();  // search: GET /api/clinician
+                return;
             }
+
+            if ($method === 'POST' && $sub === null) {
+                $this->create();  // create: POST /api/clinician
+                return;
+            }
+
+            json(405, ['error' => 'Method not allowed.']);
         }
         // /api/clinician/{id}
         else {
-            switch ($method) {
-                case 'GET' && $sub === null:
-                    $this->find($id); // GET /api/clinician/{id}
-                    break;
-                case 'PUT' && $sub === null:
-                    $this->update($id);  // update: PUT /api/clinician/{id}
-                    break;
-                case 'DELETE' && $sub === null:
-                    $this->delete($id);  // delete: DELETE /api/clinician/{id}
-                    break;
-                default:
-                    json(405, ['error' => 'Method not allowed.']);
+            if ($method === 'GET' && $sub === null) {
+                $this->find($id); // GET /api/clinician/{id}
+                return;
             }
+
+            if ($method === 'PUT' && $sub === null) {
+                $this->update($id);  // update: PUT /api/clinician/{id}
+                return;
+            }
+
+            if ($method === 'DELETE' && $sub === null) {
+                $this->delete($id);  // delete: DELETE /api/clinician/{id}
+                return;
+            }
+
+            json(405, ['error' => 'Method not allowed.']);
         }
     }
 

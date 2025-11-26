@@ -11,38 +11,46 @@ final class MutationController
     {
         // /api/mutation or /api/mutation/{sub}
         if ($id === null) {
-            switch ($method) {
-                case 'GET' && $sub === null:
-                    $this->search();  // search: GET /api/mutation
-                    break;
-                    case 'GET' && $sub === 'stats':
-                        $this->stats();  // stats: GET /api/mutation/stats
-                        break;
-                case 'POST':
-                    if ($sub === 'link') {
-                        $this->link();         // link mutation: POST /api/mutation/link
-                    } elseif ($sub === 'unlink') {
-                        $this->unlink();       // unlink mutation: POST /api/mutation/unlink
-                    } else {
-                        $this->create();       // create: POST /api/mutation
-                    }
-                    break;
-                default:
-                    json(405, ['error' => 'Method not allowed.']);
+            if ($method === 'GET' && $sub === null) {
+                $this->search();  // search: GET /api/mutation
+                return;
             }
+
+            if ($method === 'GET' && $sub === 'stats') {
+                $this->stats();  // stats: GET /api/mutation/stats
+                return;
+            }
+
+            if ($method === 'POST') {
+                if ($sub === 'link') {
+                    $this->link();         // link mutation: POST /api/mutation/link
+                    return;
+                }
+                if ($sub === 'unlink') {
+                    $this->unlink();       // unlink mutation: POST /api/mutation/unlink
+                    return;
+                }
+                if ($sub === null) {
+                    $this->create();       // create: POST /api/mutation
+                    return;
+                }
+            }
+
+            json(405, ['error' => 'Method not allowed.']);
         }
         // /api/mutation/{id}
         else {
-            switch ($method) {
-                case 'PUT' && $sub === null:
-                    $this->update($id);  // update: PUT /api/mutation/{id}
-                    break;
-                case 'DELETE' && $sub === null:
-                    $this->delete($id);  // delete: DELETE /api/mutation/{id}
-                    break;
-                default:
-                    json(405, ['error' => 'Method not allowed.']);
+            if ($method === 'PUT' && $sub === null) {
+                $this->update($id);  // update: PUT /api/mutation/{id}
+                return;
             }
+
+            if ($method === 'DELETE' && $sub === null) {
+                $this->delete($id);  // delete: DELETE /api/mutation/{id}
+                return;
+            }
+
+            json(405, ['error' => 'Method not allowed.']);
         }
     }
 
