@@ -112,7 +112,11 @@ class Clinician
     // delete clinician
     public function delete(int $id): void
     {
+        // validation: id
+        $this->find($id);
+        // prepare query
         $stmt = $this->pdo->prepare("DELETE FROM clinician WHERE clinician_id = ?");
+        // execute query
         $stmt->execute([$id]);
     }
 

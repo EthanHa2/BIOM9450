@@ -115,6 +115,8 @@ class Phenotype
     // delete phenotype
     public function delete(int $id): void
     {
+        // validation: id
+        $this->find($id);
         // prepare query
         $stmt = $this->pdo->prepare("DELETE FROM phenotype WHERE phenotype_id = ?");
         // execute query
