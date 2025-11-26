@@ -98,7 +98,7 @@ try {
             $controller = new PhenotypeController($pdo);
             $controller->handle($id, $sub, $method);
             break;
-        // ✅ clinician API
+        // clinician API
         case 'clinician':
             $controller = new ClinicianController($pdo);
             $controller->handle($id, $sub, $method);
