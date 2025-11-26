@@ -507,7 +507,7 @@ export default function PatientDetailsPage() {
           mutation_id: data,
         };
 
-        res = await fetch(`${API_BASE_URL}/mutation`, {
+        res = await fetch(`${API_BASE_URL}/mutation/link`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -525,10 +525,8 @@ export default function PatientDetailsPage() {
       }
 
       // Prepare payload - convert empty strings to null or keep as is depending on backend
-      const payload = {
+      const mutationPayload = {
         ...data,
-        patient_id: patient.patient_id,
-        // Ensure numbers are numbers, strings are strings
         chromosome_start: Number(data.chromosome_start) || 0,
         chromosome_end: Number(data.chromosome_end) || 0,
       };
@@ -541,7 +539,7 @@ export default function PatientDetailsPage() {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              ...payload,
+              ...mutationPayload,
               mutation_id: editingMutation.mutation_id,
             }),
           }
@@ -551,7 +549,7 @@ export default function PatientDetailsPage() {
         res = await fetch(`${API_BASE_URL}/mutation`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(mutationPayload),
         });
       }
 
@@ -563,18 +561,34 @@ export default function PatientDetailsPage() {
         setMutations((prev) =>
           prev.map((m) =>
             m.mutation_id === targetId
-              ? ({ ...m, ...payload, mutation_id: targetId } as Mutation) // cast to Mutation because form data might be looser
+              ? ({
+                  ...m,
+                  ...mutationPayload,
+                  mutation_id: targetId,
+                } as Mutation)
               : m
           )
         );
       } else {
+        const newMutationId = result.mutation_id || result.id;
+
+        const linkRes = await fetch(`${API_BASE_URL}/mutation/link`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            patient_id: patient.patient_id,
+            mutation_id: newMutationId,
+          }),
+        });
+
+        if (!linkRes.ok) throw new Error("Failed to link new mutation");
+
         const newMutation: Mutation = {
-          ...payload,
-          mutation_id: result.mutation_id || result.id,
-          // Ensure types match Mutation interface
-          icgc_specimen_id: payload.icgc_specimen_id,
-          chromosome: payload.chromosome,
-          mutation_type: payload.mutation_type,
+          ...mutationPayload,
+          mutation_id: newMutationId,
+          icgc_specimen_id: "",
+          chromosome: mutationPayload.chromosome,
+          mutation_type: mutationPayload.mutation_type,
         };
         setMutations((prev) => [...prev, newMutation]);
       }
