@@ -33,7 +33,8 @@ final class Validator
     // date
     public static function date(array $data, array $fields, string $format = 'Y-m-d', bool $requirePast = True): void
     {
-        $today = new DateTime('today');
+        $timezone = new DateTimeZone('Australia/Sydney');
+        $today = new DateTimeImmutable('today', $timezone);
 
         foreach ($fields as $field) {
             if (!isset($data[$field])) {
@@ -41,27 +42,24 @@ final class Validator
             }
 
             $value = (string)$data[$field];
-            $dt = DateTime::createFromFormat($format, $value);
-            $errors = DateTime::getLastErrors();
 
-            // valid date
-            if (!$dt) {
+            // parse with the exact same timezone
+            $dt = DateTimeImmutable::createFromFormat($format, $value, $timezone);
+            $errors = DateTimeImmutable::getLastErrors();
+
+            // invalid format or warnings/errors
+            if (!$dt || ($errors['error_count'] ?? 0) > 0 || ($errors['warning_count'] ?? 0) > 0) {
                 throw new InvalidArgumentException("Field {$field} must be a valid date ({$format}).");
             }
 
-            if (
-                is_array($errors)
-                && (
-                    ($errors['warning_count'] ?? 0) > 0
-                    || ($errors['error_count'] ?? 0) > 0
-                )
-            ) {
-                throw new InvalidArgumentException("Field {$field} must be a valid date ({$format}).");
-            }
+            // normalise to 00:00
+            $dt = $dt->setTime(0, 0, 0);
 
-            // date cannot be later than today
-            if ($requirePast === True && $dt > $today) {
-                throw new InvalidArgumentException("Field {$field} cannot be later than today ({$today->format($format)}).");
+            // Date must not be in the future
+            if ($requirePast && $dt > $today) {
+                throw new InvalidArgumentException(
+                    "Field {$field} cannot be later than today ({$today->format($format)})."
+                );
             }
         }
     }
