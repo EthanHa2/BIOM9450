@@ -23,6 +23,7 @@ final class PhenotypeController
         return $data;
     }
 
+    // entry point from API
     public function handle(?int $id, ?string $sub, ?string $method): void
     {
         // /api/phenotype
