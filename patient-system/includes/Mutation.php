@@ -76,15 +76,15 @@ class Mutation
         ");
 
         $stmt->execute([
-            ':chromosome' => $clean['chromosome'],
-            ':chromosome_start' => $clean['chromosome_start'],
-            ':chromosome_end' => $clean['chromosome_end'],
-            ':mutation_type' => $clean['mutation_type'],
-            ':mutated_from_allele' => $clean['mutated_from_allele'],
-            ':mutated_to_allele' => $clean['mutated_to_allele'],
-            ':consequence_type' => $clean['consequence_type'],
-            ':gene_affected' => $clean['gene_affected'],
-            ':cancer_type' => $clean['cancer_type'],
+            ':chromosome' => $clean['chromosome'] ?? null,
+            ':chromosome_start' => $clean['chromosome_start'] ?? null,
+            ':chromosome_end' => $clean['chromosome_end'] ?? null,
+            ':mutation_type' => $clean['mutation_type'] ?? null,
+            ':mutated_from_allele' => $clean['mutated_from_allele'] ?? null,
+            ':mutated_to_allele' => $clean['mutated_to_allele'] ?? null,
+            ':consequence_type' => $clean['consequence_type'] ?? null,
+            ':gene_affected' => $clean['gene_affected'] ?? null,
+            ':cancer_type' => $clean['cancer_type'] ?? null,
         ]);
 
         return (int)$this->pdo->lastInsertId();
@@ -119,18 +119,17 @@ class Mutation
               cancer_type = :cancer_type
           WHERE mutation_id = :id
         ");
-
         // execute query
         $stmt->execute([
-            ':chromosome' => $clean['chromosome'],
-            ':chromosome_start' => $clean['chromosome_start'],
-            ':chromosome_end' => $clean['chromosome_end'],
-            ':mutation_type' => $clean['mutation_type'],
-            ':mutated_from_allele' => $clean['mutated_from_allele'],
-            ':mutated_to_allele' => $clean['mutated_to_allele'],
-            ':consequence_type' => $clean['consequence_type'],
-            ':gene_affected' => $clean['gene_affected'],
-            ':cancer_type' => $clean['cancer_type'],
+            ':chromosome' => $clean['chromosome'] ?? null,
+            ':chromosome_start' => $clean['chromosome_start'] ?? null,
+            ':chromosome_end' => $clean['chromosome_end'] ?? null,
+            ':mutation_type' => $clean['mutation_type'] ?? null,
+            ':mutated_from_allele' => $clean['mutated_from_allele'] ?? null,
+            ':mutated_to_allele' => $clean['mutated_to_allele'] ?? null,
+            ':consequence_type' => $clean['consequence_type'] ?? null,
+            ':gene_affected' => $clean['gene_affected'] ?? null,
+            ':cancer_type' => $clean['cancer_type'] ?? null,
             ':id' => $id,
         ]);
     }

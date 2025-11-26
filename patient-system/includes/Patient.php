@@ -72,13 +72,13 @@ class Patient
         ");
         // execute query
         $stmt->execute([
-            ':first_name' => $clean['first_name'],
-            ':last_name' => $clean['last_name'],
-            ':dob' => $clean['dob'],
-            ':sex' => $clean['sex'],
-            ':phone' => $clean['phone'],
-            ':address' => $clean['address'],
-            ':photo' => $clean['photo'],
+            ':first_name' => $clean['first_name'] ?? null,
+            ':last_name' => $clean['last_name'] ?? null,
+            ':dob' => $clean['dob'] ?? null,
+            ':sex' => $clean['sex'] ?? null,
+            ':phone' => $clean['phone'] ?? null,
+            ':address' => $clean['address'] ?? null,
+            ':photo' => $clean['photo'] ?? null,
         ]);
         return (int)$this->pdo->lastInsertId();
     }
@@ -112,13 +112,13 @@ class Patient
         ");
         // execute query
         $stmt->execute([
-            ':first_name' => $clean['first_name'],
-            ':last_name' => $clean['last_name'],
-            ':dob' => $clean['dob'],
-            ':sex' => $clean['sex'],
-            ':phone' => $clean['phone'],
-            ':address' => $clean['address'],
-            ':photo' => $clean['photo'],
+            ':first_name' => $clean['first_name'] ?? null,
+            ':last_name' => $clean['last_name'] ?? null,
+            ':dob' => $clean['dob'] ?? null,
+            ':sex' => $clean['sex'] ?? null,
+            ':phone' => $clean['phone'] ?? null,
+            ':address' => $clean['address'] ?? null,
+            ':photo' => $clean['photo'] ?? null,
             ':id' => $id,
         ]);
     }
