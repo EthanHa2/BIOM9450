@@ -81,11 +81,7 @@ class Phenotype
     public function update(int $id, array $data): void
     {
         // merge incoming data with existing data
-        $rows = $this->search(["phenotype_id" => $id]);
-        if (empty($rows)) {
-            throw new RuntimeException("Phenotype with ID {$id} not found.");
-        }
-        $existing = reset($rows);
+        $existing = $this->find($id);
         $merged = array_intersect_key($existing, array_flip(self::FIELDS));
         foreach (self::FIELDS as $field) {
             if (array_key_exists($field, $data)) {
@@ -150,4 +146,15 @@ class Phenotype
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    // find phenotype with ID
+    public function find($id): array
+    {
+        $rows = $this->search(["phenotype_id" => $id]);
+        if (empty($rows)) {
+            throw new RuntimeException("Phenotype with ID {$id} not found.");
+        }
+        return reset($rows);
+    }
+
 }
