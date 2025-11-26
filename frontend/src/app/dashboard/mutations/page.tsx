@@ -464,7 +464,7 @@ export default function MutationsPage() {
   return (
     <div className="h-screen flex overflow-hidden">
       <DashboardNavBar />
-      <main className="flex-1 flex flex-col px-40 py-25 overflow-y-auto bg-slate-50">
+      <main className="flex-1 flex flex-col px-20 py-10 overflow-y-auto bg-slate-50">
         {/* Header Title */}
         <div className="mb-8 flex justify-between items-center">
           <div>
