@@ -179,6 +179,7 @@ export default function DashboardPage() {
             const primaryDiag = diagnostics[0];
 
             // map phenotype descriptions to a string array
+            // flatten any semicolon-delimited phenotype notes into chips
             const phenotypeList = phenotypes.flatMap((ph) =>
               ph.description.split(";").map((s) => s.trim())
             );
@@ -208,7 +209,7 @@ export default function DashboardPage() {
   const handleApplyFilters = (filters: FilterValues) => {
     // everything filters client-side so we can pivot instantly
     const filtered = allPatients.filter((patient) => {
-      // ID Filter
+      // ID Filter (exact match because ids need to be deterministic)
       if (
         filters.patientId &&
         patient.patient_id.toString() !== filters.patientId
@@ -216,7 +217,7 @@ export default function DashboardPage() {
         return false;
       }
 
-      // First Name Filter
+      // First Name Filter (case-insensitive substring search)
       if (
         filters.firstName &&
         !patient.first_name
@@ -236,7 +237,7 @@ export default function DashboardPage() {
         return false;
       }
 
-      // DOB Filter
+      // DOB Filter (min/max bounds coming from date pickers)
       if (filters.dobFrom) {
         const dobDate = new Date(patient.dob);
         if (dobDate < filters.dobFrom) {
@@ -280,7 +281,7 @@ export default function DashboardPage() {
         }
       }
 
-      // Phenotypes Filter
+      // Phenotypes Filter (every requested phenotype must exist somewhere)
       if (filters.phenotypes.length > 0) {
         if (!patient.phenotypes) return false;
         const hasAll = filters.phenotypes.every((ph) =>
@@ -351,7 +352,7 @@ export default function DashboardPage() {
         throw new Error(errorBody.error || "Failed to create patient.");
       }
 
-      const result = await response.json();
+      const result = await response.json(); // some controllers surface patient_id, others id
       const newPatientId = result.patient_id || result.id;
 
       if (!newPatientId) {
@@ -376,7 +377,7 @@ export default function DashboardPage() {
     }
   };
 
-  const totalRows = filteredPatients.length;
+  const totalRows = filteredPatients.length; // drive both copy and pagination logic
   const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
   const clampedPage = Math.min(currentPage, totalPages);
   const startIndex = totalRows === 0 ? 0 : (clampedPage - 1) * PAGE_SIZE;
@@ -477,6 +478,7 @@ export default function DashboardPage() {
         doc.setFontSize(11);
         doc.setFont("helvetica", "normal");
 
+        // little helper keeps labels aligned while wrapping long text blocks
         const addWrappedText = (label: string, value: string) => {
           const labelText = `${label}: `;
           const labelWidth = doc.getTextWidth(labelText) + 1; // small spacing after label

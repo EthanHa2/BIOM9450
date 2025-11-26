@@ -87,7 +87,7 @@ export default function ProfilePage() {
         throw new Error(json.message || "Failed to load profile.");
       }
 
-      const data = json.data as ClinicianProfile;
+      const data = json.data as ClinicianProfile; // php api returns a single row payload
       setProfile({
         first_name: data.first_name ?? "",
         last_name: data.last_name ?? "",
@@ -95,7 +95,7 @@ export default function ProfilePage() {
         phone: data.phone ?? "",
         specialty: data.specialty ?? "",
       });
-      setBackupProfile(data);
+      setBackupProfile(data); // snapshot for optimistic cancel support
     } catch (err) {
       console.error("Error fetching clinician profile:", err);
       notifications.show({
@@ -111,7 +111,7 @@ export default function ProfilePage() {
   useEffect(() => {
     fetchProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user]); // refetch only when auth context changes
 
   const handleEdit = () => {
     // stash current values so cancel can revert cleanly
@@ -123,7 +123,7 @@ export default function ProfilePage() {
   const handleSave = async () => {
     if (!user) return;
 
-    const sanitizedPhone = profile.phone.replace(/\D/g, "");
+    const sanitizedPhone = profile.phone.replace(/\D/g, ""); // php validator still wants numerics even though optional
 
     if (!sanitizedPhone) {
       notifications.show({
@@ -134,7 +134,7 @@ export default function ProfilePage() {
       return;
     }
 
-    const payload = { ...profile, phone: sanitizedPhone };
+    const payload = { ...profile, phone: sanitizedPhone }; // keep other fields untouched
 
     try {
       setLoading(true);

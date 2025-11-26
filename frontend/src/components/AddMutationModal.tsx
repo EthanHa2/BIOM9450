@@ -226,6 +226,16 @@ export function AddMutationModal({
   };
 
   const handleSubmit = async () => {
+    // submission is controlled by parent page; we just handle UI state here
+    if (
+      formData.chromosome_start !== "" &&
+      formData.chromosome_end !== "" &&
+      Number(formData.chromosome_end) <= Number(formData.chromosome_start)
+    ) {
+      alert("Chromosome end must be greater than chromosome start.");
+      return;
+    }
+
     try {
       setSubmitting(true);
       await onApply(formData);
