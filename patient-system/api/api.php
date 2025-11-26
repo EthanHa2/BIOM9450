@@ -24,33 +24,17 @@ require_once __DIR__ . '/MutationController.php';
 require_once __DIR__ . '/DiagnosticController.php';
 require_once __DIR__ . '/PhenotypeController.php';
 require_once __DIR__ . '/ClinicianController.php';
+require_once __DIR__ . '/helper.php';
 
-
-// helper functions
-function json_response(int $status, array $body): void
-{
-    http_response_code($status);
-    echo json_encode($body);
-    exit;
-}
-function getJsonBody(): array
-{
-    $raw = file_get_contents('php://input');
-    $data = json_decode($raw, true);
-    if (!is_array($data)) {
-        json_response(400, ['error' => 'Invalid JSON body.']);
-    }
-    return $data;
-}
 
 // parse path
 $path = trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
 $parts = explode('/', $path);
 
-// Supported resources
+// supported resources
 $validResources = ['patient', 'mutation', 'diagnostic', 'phenotype', 'clinician'];
 
-// Find the first part that matches a valid resource
+// find the first part that matches a valid resource
 $resourceIndex = -1;
 foreach ($parts as $index => $part) {
     if (in_array($part, $validResources, true)) {
@@ -60,7 +44,7 @@ foreach ($parts as $index => $part) {
 }
 
 if ($resourceIndex === -1) {
-    json_response(404, ['error' => 'Resource not found.', 'debug_parts' => $parts]);
+    json(404, ['error' => 'Resource not found.', 'debug_parts' => $parts]);
 }
 
 $resource = $parts[$resourceIndex];
@@ -104,13 +88,13 @@ try {
             $controller->handle($id, $sub, $method);
             break;
         default:
-            json_response(404, ['error' => 'Resource not found.']);
+            json(404, ['error' => 'Resource not found.']);
     }
 } catch (InvalidArgumentException $e) { // invalid argument
-    json_response(422, ['error' => $e->getMessage()]);
+    json(422, ['error' => $e->getMessage()]);
 } catch (RuntimeException $e) { // client error
-    json_response(400, ['error' => $e->getMessage()]);
+    json(400, ['error' => $e->getMessage()]);
 } catch (Throwable $e) { // server error
     error_log("Server error: " . $e->getMessage() . "\n" . $e->getTraceAsString());
-    json_response(500, ['error' => 'Server error', 'details' => $e->getMessage()]);
+    json(500, ['error' => 'Server error', 'details' => $e->getMessage()]);
 }
