@@ -253,7 +253,7 @@ VALUES (
 -- 3) import CSV (run if file exists and LOCAL is allowed)
 -- 3) IMPORT CSV INTO mutation
 -- (update the path to wherever the file is on your machine)
-LOAD DATA LOCAL INFILE '"C:\Users\ethan\Desktop\UNSW\2025 T3\BIOM9450 Health Informatics\Mutation_original.csv"'
+LOAD DATA LOCAL INFILE 'C:/Users/sunny/Desktop/Uni/BIOM9450/BIOM9450/Mutation_original.csv'
 INTO TABLE mutation
 FIELDS TERMINATED BY ','
 LINES TERMINATED BY '\n'
